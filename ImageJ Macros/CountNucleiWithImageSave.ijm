@@ -5,6 +5,7 @@
 setBatchMode(true);
 run("Clear Results");
 
+
 //Retrieve parameters from parent macro
 args = getArgument();
 args = split(args, "&&");
@@ -19,6 +20,14 @@ countedImagesDir = workingDir + "Nuclei Count/";
 resultsFile = workingDir + experimentId + "_Nuclei_Count.csv";
 fileList = getFileList(sourceImagesDir);
 
+
+//Return an error if the source folder does not exist
+if (!File.exists(sourceImagesDir)) {
+	print("Error: TIFF images folder not found");
+	print(sourceImagesDir);
+	return "failed";
+	exit("TIFF images folder not found");
+}
 
 //Create a results subfolder
 if (!File.exists(countedImagesDir)) {
@@ -91,3 +100,4 @@ function countNuclei(outputDir, title, name) {
 selectWindow("Summary"); 
 saveAs("Results", resultsFile);
 run("Close All");
+return "counted";
