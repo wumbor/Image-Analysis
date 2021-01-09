@@ -10,8 +10,7 @@ workingDir = args[0]
 pathToRscript = args[1];
 experimentId = args[2];
 
-print(" ");
-print("Summarising and plotting data...");
+
 
 //Reformat workingDir 
 workingDirforR = workingDir.substring(0, (lengthOf(workingDir)-1)); //remove trailing /
@@ -23,7 +22,7 @@ pathToRscriptString = '"' + pathToRscript + '"'; //enclose path in quotation mar
 RCmdArgs = "Rscript.exe" + " " + pathToRscriptString + " " + workingDirforRString; //specify execution parameters for command prompt
 
 exec("cmd", "/c", "start", "cmd", "/c", RCmdArgs); //run R Script via command prompt
-print("Data Summary and Plot Complete");
+
 
 
 

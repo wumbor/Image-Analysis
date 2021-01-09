@@ -18,15 +18,6 @@ resultsFile = workingDir + experimentId + "_Nuclei_Count.csv";
 fileList = getFileList(sourceImagesDir);
 
 
-//Return an error if the source folder does not exist
-if (!File.exists(sourceImagesDir)) {
-	print("Error: TIFF images folder not found");
-	print(sourceImagesDir);
-	return "failed";
-	exit("TIFF images folder not found");
-}
-
-
 //Run the nuclei count function on all images in the selected folder
 print("Counting Nuclei...");
 counter = 0;
@@ -72,4 +63,3 @@ function countNuclei(title, name) {
 
 selectWindow("Summary"); 
 saveAs("Results", resultsFile);
-return "counted";

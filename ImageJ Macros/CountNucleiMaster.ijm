@@ -7,7 +7,8 @@ setBatchMode(true);
 print("\\Clear");
 
 //Set key parameters
-saveImages = false;
+countNuclei = true;
+saveImages = true;
 plotData = true;
 
 NucleiThreshold = 35;
@@ -36,13 +37,23 @@ CountWithImgSaveMacroPath = IJMacrosDir + "CountNucleiWithImageSave.ijm" //speci
 CountWithoutImgSaveMacroPath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm" //specify path to macro for nuclei count with image saving off
 NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //combine macro arguments into one string
 
+sourceImagesDir = workingDir + "TIFFs/";
 
-if (saveImages){
-		NucleiCountStatus = runMacro(CountWithImgSaveMacroPath, NucleiCountArgs);
-	} else {
-		NucleiCountStatus = runMacro(CountWithoutImgSaveMacroPath, NucleiCountArgs);
+if (countNuclei) {
+
+	if (!File.exists(sourceImagesDir)) {
+		print(" ");
+		print("Error: TIFF images folder not found");
+		print(sourceImagesDir);
+		exit("TIFF images folder not found");
 	}
 
+	if (saveImages){
+			runMacro(CountWithImgSaveMacroPath, NucleiCountArgs);
+		} else {
+			runMacro(CountWithoutImgSaveMacroPath, NucleiCountArgs);
+		}
+}
 
 
 
@@ -51,9 +62,28 @@ callRScriptMacroPath = IJMacrosDir + "CallRScript.ijm";
 pathToRScript = RScriptsDir + "SummariseNucleiCount.R"; //speficy the path to the R script to be run
 CallRScriptArgs = workingDir + "&&" + pathToRScript + "&&" + experimentId; //combine macro arguments into one string
 
+nucleiCountResultsFile = workingDir + experimentId +  "_Nuclei_Count.csv";
+imageSequenceFile = workingDir + experimentId + "_Image_Capture.txt";
 
-if (NucleiCountStatus != "failed"){
-	if (plotData) {
-		runMacro(callRScriptMacroPath, CallRScriptArgs);
-	}
-	} 
+
+if (plotData){
+	
+		if (!File.exists(nucleiCountResultsFile)) { //check to ensure a nuclei count results file is present
+			print(" ");
+			print("Error: Nuclei Count Results file not found");
+			print(nucleiCountResultsFile);
+			exit("Nuclei Count Results file not found");
+		}
+
+		if (!File.exists(imageSequenceFile)) { //check to ensure an image sequence file is present
+			print(" ");
+			print("Error: Image Sequence file not found");
+			print(imageSequenceFile);
+			exit("Image Sequence file not found");
+		}
+		
+		print(" ");
+		print("Summarising and plotting data...");
+		runMacro(callRScriptMacroPath, CallRScriptArgs);			
+		print("Data Summary and Plot Complete");
+		}
