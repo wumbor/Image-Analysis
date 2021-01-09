@@ -6,7 +6,9 @@
 setBatchMode(true);
 
 //Set key parameters
-saveImages = true;
+saveImages = false;
+plotData = true;
+
 NucleiThreshold = 35;
 workingDir = getDirectory("Choose Source Folder");
 workingDir = workingDir.replace("\\", "/") //convert directory path to universal format
@@ -29,14 +31,14 @@ experimentId = experimentId[(lengthOf(experimentId)-1)];
 
 
 //Call the appropriate Nuclei Count macro and pass the working directory, nuclei threshold and experimentId as arguments
-macroWithImageSavePath = IJMacrosDir + "CountNucleiWithImageSave.ijm" //specify path to macro for nuclei count with image saving on
-macroWithoutImageSavePath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm" //specify path to macro for nuclei count with image saving off
+CountWithImgSaveMacroPath = IJMacrosDir + "CountNucleiWithImageSave.ijm" //specify path to macro for nuclei count with image saving on
+CountWithoutImgSaveMacroPath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm" //specify path to macro for nuclei count with image saving off
 NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //combine macro arguments into one string
 
 if (saveImages){
-		runMacro(macroWithImageSavePath, NucleiCountArgs);
+		runMacro(CountWithImgSaveMacroPath, NucleiCountArgs);
 	} else {
-		runMacro(macroWithoutImageSavePath, NucleiCountArgs);
+		runMacro(CountWithoutImgSaveMacroPath, NucleiCountArgs);
 	}
 
 
@@ -44,20 +46,13 @@ if (saveImages){
 
 
 
-//Run the R script to summarise the data and plot graphs
+//Run the SummariseNucleiCount R script to summarise the data and plot graphs
+callRScriptMacroPath = IJMacrosDir + "CallRScript.ijm";
+pathToRScript = RScriptsDir + "SummariseNucleiCount.R"; //speficy the path to the R script to be run
+CallRScriptArgs = workingDir + "&&" + pathToRScript + "&&" + experimentId; //combine macro arguments into one string
 
-workingDirforR = workingDir.substring(0, (lengthOf(workingDir)-1)); //remove trailing /
-workingDirforRString = '"' + workingDirforR + '"'; //enclose path in quotation marks
 
-pathToNucleiCountRscript = RScriptsDir + "SummariseNucleiCount.R";
-pathToNucleiCountRscriptString = '"' + pathToNucleiCountRscript + '"'; //enclose path in quotation marks
 
-RCmdArgs = "Rscript.exe" + " " + pathToNucleiCountRscriptString + " " + workingDirforRString; //specify execution parameters for command prompt
-exec("cmd", "/c", "start", "cmd", "/k", RCmdArgs);
-
-/*
-pathToRscript = 'Rscript.exe "D:/OneDrive - Charité - Universitätsmedizin Berlin/PhD Project-DESKTOP-3SHP9SG/mMORPH/R Scripts/Aggregate_Nuclei_3.R"';
-executionPath = pathToRscript + ' ' + RWorkingDir;
-exec("cmd", "/c", "start", "cmd", "/k", executionPath);
-
-*/
+if (plotData){
+		runMacro(callRScriptMacroPath, CallRScriptArgs);
+	} 
