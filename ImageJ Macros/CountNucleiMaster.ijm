@@ -7,12 +7,17 @@ setBatchMode(true);
 
 //Set key parameters
 convertImages = false;
-saveImages = true;
+saveImages = false;
 NucleiThreshold = 35;
 workingDir = getDirectory("Choose Source Folder");
 workingDir = workingDir.replace("\\", "/") //convert directory path to universal format
 
 
+IJMacrosDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/ImageJ Macros/";
+IJMacrosDir = IJMacrosDir.replace("\\", "/") //convert directory path to universal format
+
+macroWithImageSavePath = IJMacrosDir + "CountNucleiWithImageSave.ijm" //Specify path to macro 
+macroWithoutImageSavePath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm" //Specify path to macro
 
 //Extract the experimentId from the directory path
 experimentId = split(workingDir, "/");
@@ -35,11 +40,9 @@ if (convertImages){
 //Call the appropriate Nuclei Count macro with the source folder and threshold
 NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId;
 if (saveImages){
-		print("Counting Nuclei...");
-		runMacro("CountNucleiWithImageSave2", NucleiCountArgs);
+		runMacro(macroWithImageSavePath, NucleiCountArgs);
 	} else {
-		print("Counting Nuclei...");
-		runMacro("CountNucleiWithoutImageSave2", NucleiCountArgs);
+		runMacro(macroWithoutImageSavePath, NucleiCountArgs);
 	}
 
 
