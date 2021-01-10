@@ -5,10 +5,7 @@
 setBatchMode(true);
 print("\\Clear");
 
-//Load key parameters from file
-nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt";
-loadAllParameters(nucleiCountParametersFile);
-
+//Initialize global variables
 var IJMacrosDir;
 var RScriptsDir;
 var NucleiThreshold;
@@ -16,13 +13,33 @@ var countNuclei;
 var saveImages;
 var plotData;
 
+//Request working directory from user
 workingDir = getDirectory("Choose Source Folder");
 workingDir = workingDir.replace("\\", "/"); //convert directory path to universal format
+
+//Load key parameters from file
+nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt";
+loadAllParameters(nucleiCountParametersFile);
+
+//Initialise AnalysisLog file
+analysisLogFile = workingDir + "AnalysisLog.txt";
+timeStampMacroPath = IJMacrosDir + "GetTimeStamp.ijm";
+timeStamp = runMacro(timeStampMacroPath);
+
+if (!File.exists(analysisLogFile)) {
+	f = File.open(analysisLogFile); //Create a log file if none already exists
+	print(f, "NUCLEI COUNT PARAMETERS");
+	print(f, timeStamp);
+	File.close(f);
+} else {
+	File.append("", analysisLogFile);
+	File.append("NUCLEI COUNT PARAMETERS", analysisLogFile); //Write to an existing file if it already exists
+	File.append(timeStamp, analysisLogFile);
+}
 
 //Extract the experimentId from the directory path
 experimentId = split(workingDir, "/");
 experimentId = experimentId[(lengthOf(experimentId)-1)];
-
 
 
 //Call the appropriate Nuclei Count macro and pass the working directory, nuclei threshold and experimentId as arguments
@@ -32,7 +49,7 @@ NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //c
 
 sourceImagesDir = workingDir + "TIFFs/";
 
-if (countNuclei) {
+if (countNuclei) { //perform a nuclei count if countNuclei is set to true
 
 	if (!File.exists(sourceImagesDir)) {
 		print(" ");
@@ -42,10 +59,13 @@ if (countNuclei) {
 	}
 
 	if (saveImages){
+			File.append("Nuclei Count Macro: CountNucleiWithImageSave.ijm", analysisLogFile);
 			runMacro(CountWithImgSaveMacroPath, NucleiCountArgs);
 		} else {
+			File.append("Nuclei Count Macro: CountNucleiWithoutImageSave.ijm", analysisLogFile);
 			runMacro(CountWithoutImgSaveMacroPath, NucleiCountArgs);
 		}
+	File.append("Nuclei Count Threshold: " + NucleiThreshold, analysisLogFile);
 }
 
 
@@ -79,6 +99,7 @@ if (plotData){
 		print("Summarising and plotting data...");
 		runMacro(callRScriptMacroPath, CallRScriptArgs);			
 		print("Data Summary and Plot Complete");
+		File.append("Analysis Script: SummariseNucleiCount.R", analysisLogFile);
 }
 
 
