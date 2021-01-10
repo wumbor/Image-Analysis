@@ -1,6 +1,6 @@
 //This macro counts the number of nuclei in images and saves the processed images
 //Written by Victor Kumbol, June 2020
-//Modified by Victor Kumbol, December 2020
+//Modified by Victor Kumbol, January 2021
 
 setBatchMode(true);
 run("Clear Results");
@@ -13,12 +13,13 @@ nucleiThreshold = parseInt(args[1]);
 experimentId = args[2];
 
 //Define key variables
-sourceImagesDir = workingDir + "TIFFs" + File.separator;;
+sourceImagesDir = workingDir + "TIFFs/";
 resultsFile = workingDir + experimentId + "_Nuclei_Count.csv";
 fileList = getFileList(sourceImagesDir);
 
 
 //Run the nuclei count function on all images in the selected folder
+print("Counting Nuclei...");
 counter = 0;
 for (i = 0; i < fileList.length; i++){
 	if (endsWith(fileList[i], ".tif")) { //process only tiff images
