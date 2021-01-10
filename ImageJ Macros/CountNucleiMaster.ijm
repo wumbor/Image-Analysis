@@ -2,27 +2,22 @@
 //Written by Victor Kumbol, June 2020
 //Modified by Victor Kumbol, January 2021
 
-
 setBatchMode(true);
 print("\\Clear");
 
-//Set key parameters
-countNuclei = true;
-saveImages = true;
-plotData = true;
+//Load key parameters from file
+nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt";
+loadAllParameters(nucleiCountParametersFile);
 
-NucleiThreshold = 35;
+var IJMacrosDir;
+var RScriptsDir;
+var NucleiThreshold;
+var countNuclei;
+var saveImages;
+var plotData;
+
 workingDir = getDirectory("Choose Source Folder");
 workingDir = workingDir.replace("\\", "/"); //convert directory path to universal format
-
-//Specify folder containing IJ Macros
-IJMacrosDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/ImageJ Macros/";
-IJMacrosDir = IJMacrosDir.replace("\\", "/"); //convert directory path to universal format 
-
-//Specify folder containing R Scripts
-RScriptsDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/";
-RScriptsDir = RScriptsDir.replace("\\", "/"); //convert directory path to universal format
-
 
 //Extract the experimentId from the directory path
 experimentId = split(workingDir, "/");
@@ -30,11 +25,9 @@ experimentId = experimentId[(lengthOf(experimentId)-1)];
 
 
 
-
-
 //Call the appropriate Nuclei Count macro and pass the working directory, nuclei threshold and experimentId as arguments
-CountWithImgSaveMacroPath = IJMacrosDir + "CountNucleiWithImageSave.ijm" //specify path to macro for nuclei count with image saving on
-CountWithoutImgSaveMacroPath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm" //specify path to macro for nuclei count with image saving off
+CountWithImgSaveMacroPath = IJMacrosDir + "CountNucleiWithImageSave.ijm"; //specify path to macro for nuclei count with image saving on
+CountWithoutImgSaveMacroPath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm"; //specify path to macro for nuclei count with image saving off
 NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //combine macro arguments into one string
 
 sourceImagesDir = workingDir + "TIFFs/";
@@ -86,4 +79,58 @@ if (plotData){
 		print("Summarising and plotting data...");
 		runMacro(callRScriptMacroPath, CallRScriptArgs);			
 		print("Data Summary and Plot Complete");
+}
+
+
+
+
+
+
+//Functions used in this macro
+function loadAllParameters(parametersFilePath) { 
+// This function loads all parameters from a given parameters txt file
+
+	parametersFile = File.openAsString(parametersFilePath);
+	parametersFileLines = split(parametersFile, "\n");
+	
+	for (i = 0; i < parametersFileLines.length; i++){
+	// Load directory paths
+		if (parametersFileLines[i].contains("IJMacrosDir")) { 
+			IJMacrosDir = retrieveParameter(parametersFileLines[i]); //Retrieve the IJMacrosDir 
+		} else if (parametersFileLines[i].contains("RScriptsDir")) { 
+			RScriptsDir = retrieveParameter(parametersFileLines[i]); //Retrieve the RScriptsDir 
+		} 
+	
+	//Load nuclei count parameters
+		if (parametersFileLines[i].contains("NucleiThreshold")) {
+			NucleiThreshold = parseInt(retrieveParameter(parametersFileLines[i])); //Retrieve the NucleiThreshold
+		} else if (parametersFileLines[i].contains("countNuclei")) {
+			countNuclei = retrieveParameter(parametersFileLines[i]); //Retrieve the countNuclei option
+		} else if (parametersFileLines[i].contains("saveImages")) {
+			saveImages = retrieveParameter(parametersFileLines[i]); //Retrieve the saveImages option
+		} else if (parametersFileLines[i].contains("plotData")) {
+			plotData = retrieveParameter(parametersFileLines[i]); //Retrieve the saveImages option
 		}
+		}
+}
+	
+	
+	
+	
+function retrieveParameter(parameterString) {
+	//This function returns the value assigned to a parameter as a string
+	parameterString = split(parameterString, "=");
+	parameterVal = parameterString[1].trim();
+	parameterVal = parameterVal.replace('"', "");
+	
+	if ((parameterVal.contains("\\"))||(parameterVal.contains("/"))) { //convert any directory paths to universal format
+		parameterVal = parameterVal.replace("\\", "/"); 
+		return parameterVal;
+	} else if (parameterVal.toLowerCase =="true") {
+		return true
+	} else if (parameterVal.toLowerCase =="false") {
+		return false
+	} else {
+		return parameterVal
+	}	
+}
