@@ -19,7 +19,7 @@ fileList = getFileList(sourceImagesDir);
 
 
 //Run the nuclei count function on all images in the selected folder
-print("Counting Nuclei...");
+print("\nCounting Nuclei...");
 counter = 0;
 for (i = 0; i < fileList.length; i++){
 	if (endsWith(fileList[i], ".tif")) { //process only tiff images

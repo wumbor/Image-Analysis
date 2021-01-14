@@ -5,6 +5,7 @@
 setBatchMode(true);
 print("\\Clear");
 
+//INITIALISE KEY ANALYSIS PARAMETERS
 //Initialize global variables
 var IJMacrosDir;
 var RScriptsDir;
@@ -12,20 +13,28 @@ var NucleiThreshold;
 var countNuclei;
 var saveImages;
 var plotData;
+var optimiseThreshold;
+
 
 //Request working directory from user
 workingDir = getDirectory("Choose Source Folder");
 workingDir = workingDir.replace("\\", "/"); //convert directory path to universal format
+experimentId = split(workingDir, "/"); 
+experimentId = experimentId[(lengthOf(experimentId)-1)]; //Extract the experimentId from the directory path
+sourceImagesDir = workingDir + "TIFFs/"; //define source images directory
+
+
 
 //Load key parameters from file
 nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt";
 loadAllParameters(nucleiCountParametersFile);
 
+
+
 //Initialise AnalysisLog file
 analysisLogFile = workingDir + "AnalysisLog.txt";
 timeStampMacroPath = IJMacrosDir + "GetTimeStamp.ijm";
 timeStamp = runMacro(timeStampMacroPath);
-
 if (!File.exists(analysisLogFile)) {
 	f = File.open(analysisLogFile); //Create a log file if none already exists
 	print(f, "NUCLEI COUNT PARAMETERS");
@@ -37,9 +46,19 @@ if (!File.exists(analysisLogFile)) {
 	File.append(timeStamp, analysisLogFile);
 }
 
-//Extract the experimentId from the directory path
-experimentId = split(workingDir, "/");
-experimentId = experimentId[(lengthOf(experimentId)-1)];
+
+//If optimiseThreshold is toggled on, call the optimise threshold macro 
+OptimiseThresholdMacroPath = IJMacrosDir + "OptimiseThreshold.ijm"; //specify path to macro 
+OptimiseThresholdArgs = workingDir + "&&" + RScriptsDir + "&&" + IJMacrosDir; //combine required macro arguments into one string
+
+
+if (optimiseThreshold) {
+	AutoThreshold = runMacro(OptimiseThresholdMacroPath, OptimiseThresholdArgs);
+	AutoThreshold = parseInt(AutoThreshold);
+	NucleiThreshold = AutoThreshold;
+}
+
+
 
 
 //Call the appropriate Nuclei Count macro and pass the working directory, nuclei threshold and experimentId as arguments
@@ -47,8 +66,7 @@ CountWithImgSaveMacroPath = IJMacrosDir + "CountNucleiWithImageSave.ijm"; //spec
 CountWithoutImgSaveMacroPath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm"; //specify path to macro for nuclei count with image saving off
 NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //combine macro arguments into one string
 
-sourceImagesDir = workingDir + "TIFFs/";
-
+//sourceImagesDir = workingDir + "TIFFs/";
 if (countNuclei) { //perform a nuclei count if countNuclei is set to true
 
 	if (!File.exists(sourceImagesDir)) {
@@ -73,7 +91,7 @@ if (countNuclei) { //perform a nuclei count if countNuclei is set to true
 //Run the SummariseNucleiCount R script to summarise the data and plot graphs
 callRScriptMacroPath = IJMacrosDir + "CallRScript.ijm";
 pathToRScript = RScriptsDir + "SummariseNucleiCount.R"; //speficy the path to the R script to be run
-CallRScriptArgs = workingDir + "&&" + pathToRScript + "&&" + experimentId; //combine macro arguments into one string
+CallRScriptArgs = workingDir + "&&" + pathToRScript; //combine macro arguments into one string
 
 nucleiCountResultsFile = workingDir + experimentId +  "_Nuclei_Count.csv";
 imageSequenceFile = workingDir + experimentId + "_Image_Capture.txt";
@@ -125,12 +143,14 @@ function loadAllParameters(parametersFilePath) {
 	//Load nuclei count parameters
 		if (parametersFileLines[i].contains("NucleiThreshold")) {
 			NucleiThreshold = parseInt(retrieveParameter(parametersFileLines[i])); //Retrieve the NucleiThreshold
-		} else if (parametersFileLines[i].contains("countNuclei")) {
+		} else if (parametersFileLines[i].contains("countNuclei?")) {
 			countNuclei = retrieveParameter(parametersFileLines[i]); //Retrieve the countNuclei option
-		} else if (parametersFileLines[i].contains("saveImages")) {
+		} else if (parametersFileLines[i].contains("saveImages?")) {
 			saveImages = retrieveParameter(parametersFileLines[i]); //Retrieve the saveImages option
-		} else if (parametersFileLines[i].contains("plotData")) {
-			plotData = retrieveParameter(parametersFileLines[i]); //Retrieve the saveImages option
+		} else if (parametersFileLines[i].contains("plotData?")) {
+			plotData = retrieveParameter(parametersFileLines[i]); //Retrieve the plotData option
+		} else if (parametersFileLines[i].contains("optimiseThreshold?")) {
+			optimiseThreshold = retrieveParameter(parametersFileLines[i]); //Retrieve the optimiseThreshold option
 		}
 		}
 }
