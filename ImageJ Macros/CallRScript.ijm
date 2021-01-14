@@ -8,7 +8,6 @@ args = getArgument();
 args = split(args, "&&");
 workingDir = args[0] 
 pathToRscript = args[1];
-experimentId = args[2];
 
 
 
@@ -18,15 +17,9 @@ workingDirforRString = '"' + workingDirforR + '"'; //enclose path in quotation m
 
 //Enclose pathToRScript in quotes
 pathToRscriptString = '"' + pathToRscript + '"'; //enclose path in quotation marks
-
 RCmdArgs = "Rscript.exe" + " " + pathToRscriptString + " " + workingDirforRString; //specify execution parameters for command prompt
 
-exec("cmd", "/c", "start", "cmd", "/c", RCmdArgs); //run R Script via command prompt
+//exec("cmd", "/c", "start", "cmd", "/k", RCmdArgs)
 
-
-
-
-
-
-
-
+feedback = exec("cmd", "/c", RCmdArgs); //run R Script via command prompt
+return feedback;
