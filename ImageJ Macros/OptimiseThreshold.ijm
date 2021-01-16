@@ -22,7 +22,7 @@ ThresholdAnalysisFile = workingDir + experimentId + "_Threshold_Analysis.csv";
 
 
 //Prepare the ThresholdAnalysis file
-if (File.exists(ThresholdAnalysisFile)) {	////delete the existing file if one exists 
+if (File.exists(ThresholdAnalysisFile)) {	////delete any existing Threshold analysis file 
 	garbage = File.delete(ThresholdAnalysisFile);	
 } 
 f = File.open(ThresholdAnalysisFile); 
@@ -57,7 +57,7 @@ CallRScriptArgs = workingDir + "&&" + pathToRScript; //combine macro arguments i
 //runMacro(callRScriptMacroPath, CallRScriptArgs);	
 optimisedThreshold = runMacro(callRScriptMacroPath, CallRScriptArgs);	
 print("Optimum threshold determined");
-garbage = File.delete(ThresholdAnalysisFile);
+garbage = File.delete(ThresholdAnalysisFile); //delete the threshold analysis file
 return optimisedThreshold;
 
 

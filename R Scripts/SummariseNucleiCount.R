@@ -18,14 +18,14 @@ experiment_id <- experiment_id[length(experiment_id)]
 #Specify input files
 microscopy_sequence_file <- paste(experiment_id, "_Image_Capture.txt", sep = "")
 microscopy_data_file <- paste(experiment_id, "_Nuclei_Count.csv", sep = "")
+analysis_log_file <- paste(experiment_id, "_AnalysisLog.txt", sep = "")
 
 #Specify output files
-results_excel_file <- paste(experiment_id, "_Results.xlsx", sep = "")
+results_excel_file <- paste(experiment_id, "_Nuclei_Count.xlsx", sep = "")
 results_graph_file <- paste(experiment_id, "_Graph.tiff", sep = "")
 
 #Specify header line in microscopy_sequence_file
-header_line <- (grep("Condition", read_lines(microscopy_sequence_file, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1
-
+img_sequence_header_line <- (grep("Condition", read_lines(microscopy_sequence_file, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1
 
 
 
@@ -37,8 +37,9 @@ normalize <- function(value, maxi) {
 
 
 #read in file data
-image_sequence <- read.csv(file = microscopy_sequence_file, header = TRUE, sep = ",", skip = header_line)
+image_sequence <- read.csv(file = microscopy_sequence_file, header = TRUE, sep = ",", skip = img_sequence_header_line)
 image_data <- read.csv(file = microscopy_data_file, header = TRUE, sep = ",")
+analysis_parameters <- read.csv(file = analysis_log_file, sep = ",", header = TRUE)
 
 #process image sequence data
 image_sequence <- image_sequence %>%
@@ -89,7 +90,7 @@ if (file.access(results_excel_file)){
   write.xlsx(combined_data, file = results_excel_file, sheetName = "AutoThreshold Nuclei Count", col.names = TRUE, row.names = FALSE, append = FALSE)
 }
 write.xlsx(combined_data_summary, file = results_excel_file, sheetName = "Nuclei Count Summary", col.names = TRUE, append = TRUE)
-
+write.xlsx(analysis_parameters, file = results_excel_file, sheetName = "Analysis Parameters", col.names = FALSE, row.names = FALSE, append = TRUE)
 
 
 #save graph of results

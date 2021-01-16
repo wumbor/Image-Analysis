@@ -4,6 +4,7 @@
 
 setBatchMode(true);
 print("\\Clear");
+print("COUNT NUCLEI MACRO");
 
 //INITIALISE KEY ANALYSIS PARAMETERS
 //Initialize global variables
@@ -32,18 +33,28 @@ loadAllParameters(nucleiCountParametersFile);
 
 
 //Initialise AnalysisLog file
-analysisLogFile = workingDir + "AnalysisLog.txt";
+analysisLogFile = workingDir +  experimentId + "_AnalysisLog.txt";
 timeStampMacroPath = IJMacrosDir + "GetTimeStamp.ijm";
 timeStamp = runMacro(timeStampMacroPath);
-if (!File.exists(analysisLogFile)) {
-	f = File.open(analysisLogFile); //Create a log file if none already exists
-	print(f, "NUCLEI COUNT PARAMETERS");
-	print(f, timeStamp);
-	File.close(f);
-} else {
-	File.append("", analysisLogFile);
-	File.append("NUCLEI COUNT PARAMETERS", analysisLogFile); //Write to an existing file if it already exists
-	File.append(timeStamp, analysisLogFile);
+
+if (File.exists(analysisLogFile)) {
+	garbage = File.delete(analysisLogFile); // delete any existing logfile
+} 
+
+f = File.open(analysisLogFile); //Create a new logfile 
+print(f, "Parameter, Value");
+print(f, "Analysis Date, " + timeStamp);
+File.close(f);
+
+
+
+//ERROR CHECK
+//Throw an error if the TIFF images folder cannot be found
+if (!File.exists(sourceImagesDir)) { 
+	print(" ");
+	print("Error: TIFF images folder not found");
+	print(sourceImagesDir);
+	exit("TIFF images folder not found");
 }
 
 
@@ -51,11 +62,13 @@ if (!File.exists(analysisLogFile)) {
 OptimiseThresholdMacroPath = IJMacrosDir + "OptimiseThreshold.ijm"; //specify path to macro 
 OptimiseThresholdArgs = workingDir + "&&" + RScriptsDir + "&&" + IJMacrosDir; //combine required macro arguments into one string
 
-
 if (optimiseThreshold) {
 	AutoThreshold = runMacro(OptimiseThresholdMacroPath, OptimiseThresholdArgs);
 	AutoThreshold = parseInt(AutoThreshold);
-	NucleiThreshold = AutoThreshold;
+	NucleiThreshold = AutoThreshold; //change the NucleiThreshold to the one calculated automatically
+	File.append("AutoThreshold, TRUE", analysisLogFile);
+} else {
+	File.append("AutoThreshold, FALSE", analysisLogFile);
 }
 
 
@@ -68,22 +81,14 @@ NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //c
 
 //sourceImagesDir = workingDir + "TIFFs/";
 if (countNuclei) { //perform a nuclei count if countNuclei is set to true
-
-	if (!File.exists(sourceImagesDir)) {
-		print(" ");
-		print("Error: TIFF images folder not found");
-		print(sourceImagesDir);
-		exit("TIFF images folder not found");
-	}
-
 	if (saveImages){
-			File.append("Nuclei Count Macro: CountNucleiWithImageSave.ijm", analysisLogFile);
+			File.append("Nuclei Count Macro, CountNucleiWithImageSave.ijm", analysisLogFile);
 			runMacro(CountWithImgSaveMacroPath, NucleiCountArgs);
 		} else {
-			File.append("Nuclei Count Macro: CountNucleiWithoutImageSave.ijm", analysisLogFile);
+			File.append("Nuclei Count Macro, CountNucleiWithoutImageSave.ijm", analysisLogFile);
 			runMacro(CountWithoutImgSaveMacroPath, NucleiCountArgs);
 		}
-	File.append("Nuclei Count Threshold: " + NucleiThreshold, analysisLogFile);
+	File.append("Nuclei Count Threshold, " + NucleiThreshold, analysisLogFile);
 }
 
 
@@ -98,7 +103,7 @@ imageSequenceFile = workingDir + experimentId + "_Image_Capture.txt";
 
 
 if (plotData){
-	
+		File.append("Analysis Script, SummariseNucleiCount.R", analysisLogFile);
 		if (!File.exists(nucleiCountResultsFile)) { //check to ensure a nuclei count results file is present
 			print(" ");
 			print("Error: Nuclei Count Results file not found");
@@ -117,12 +122,11 @@ if (plotData){
 		print("Summarising and plotting data...");
 		runMacro(callRScriptMacroPath, CallRScriptArgs);			
 		print("Data Summary and Plot Complete");
-		File.append("Analysis Script: SummariseNucleiCount.R", analysisLogFile);
 }
 
 
-
-
+garbage = File.delete(analysisLogFile); //delete the analysis log file
+garbage = File.delete(nucleiCountResultsFile); //delete the preliminary nuclei count results file
 
 
 //Functions used in this macro
