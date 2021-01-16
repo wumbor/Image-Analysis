@@ -19,29 +19,21 @@ experimentId = experimentId[(lengthOf(experimentId)-1)]; //Extract the experimen
 sourceImagesDir = workingDir + "TIFFs/";
 fileList = getFileList(sourceImagesDir);
 ThresholdAnalysisFile = workingDir + experimentId + "_Threshold_Analysis.csv";
-timeStampMacroPath = IJMacrosDir + "GetTimeStamp.ijm";
-timeStamp = runMacro(timeStampMacroPath);
 
 
-//Create the ThresholdAnalysis file
+//Prepare the ThresholdAnalysis file
 if (File.exists(ThresholdAnalysisFile)) {	////delete the existing file if one exists 
-	if (File.delete(ThresholdAnalysisFile)) {
-		print("\nPrevious thresholdAnalysis file deleted");
-	}	
+	garbage = File.delete(ThresholdAnalysisFile);	
 } 
-
 f = File.open(ThresholdAnalysisFile); 
-print("\nNew thresholdAnalysis file created: ");
-print(ThresholdAnalysisFile);
 print(f, "Nuclei Count Threshold Optimisation: " + experimentId);
-print(f, timeStamp);	
 print(f, "Filename, Lower Threshold ");	
 File.close(f);
 
 
 
 //Run the analyse threshold on all images in the selected folder
-print("\nFinding the optimum threshold for analysis...");
+print("\nFinding the optimum threshold for nuclei count...");
 counter = 0;
 for (i = 0; i < fileList.length; i++){
 	if (endsWith(fileList[i], ".tif")) { //process only tiff images
@@ -58,11 +50,6 @@ for (i = 0; i < fileList.length; i++){
 
 
 
-//Run the DetermineOptimalThreshold.R script
-/*
-a = exec("cmd", "/c", "start", "cmd", "/k", 'Rscript "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/DetermineOptimalThreshold.R" "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/R Scripts/2020_08_3_VK"'); 
-print(a);
-*/
 
 callRScriptMacroPath = IJMacrosDir + "CallRScript.ijm";
 pathToRScript = RScriptsDir + "DetermineOptimalThreshold.R"; //speficy the path to the R script to be run
@@ -70,8 +57,8 @@ CallRScriptArgs = workingDir + "&&" + pathToRScript; //combine macro arguments i
 //runMacro(callRScriptMacroPath, CallRScriptArgs);	
 optimisedThreshold = runMacro(callRScriptMacroPath, CallRScriptArgs);	
 print("Optimum threshold determined");
+garbage = File.delete(ThresholdAnalysisFile);
 return optimisedThreshold;
-//print(optimisedThreshold);
 
 
 
