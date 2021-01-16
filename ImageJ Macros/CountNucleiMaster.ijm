@@ -81,12 +81,18 @@ NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //c
 
 //sourceImagesDir = workingDir + "TIFFs/";
 if (countNuclei) { //perform a nuclei count if countNuclei is set to true
-	if (saveImages){
+	if (saveImages){//use the macro which saves images 
+			feedback = runMacro(CountWithImgSaveMacroPath, NucleiCountArgs);
+			if (feedback != "true") { //exit the macro if the nuclei count was not performed
+				exit("Count Nuclei Master macro terminated");
+			}
 			File.append("Nuclei Count Macro, CountNucleiWithImageSave.ijm", analysisLogFile);
-			runMacro(CountWithImgSaveMacroPath, NucleiCountArgs);
-		} else {
+		} else {//use the macro which does not save images
+			feedback = runMacro(CountWithoutImgSaveMacroPath, NucleiCountArgs);
+			if (feedback != "true") { //exit the macro if the nuclei count was not performed
+				exit("Count Nuclei Master macro terminated");
+			}
 			File.append("Nuclei Count Macro, CountNucleiWithoutImageSave.ijm", analysisLogFile);
-			runMacro(CountWithoutImgSaveMacroPath, NucleiCountArgs);
 		}
 	File.append("Nuclei Count Threshold, " + NucleiThreshold, analysisLogFile);
 }

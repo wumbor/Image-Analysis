@@ -36,7 +36,9 @@ for (i = 0; i < fileList.length; i++){
 
 print("Nuclei Count Complete");
 print("Total Files Processed: " + counter);
-
+selectWindow("Summary"); 
+saveAs("Results", resultsFile);
+return "true";
 
 
 function countNuclei(title, name) { 
@@ -61,5 +63,3 @@ function countNuclei(title, name) {
 	close("*");
 }
 
-selectWindow("Summary"); 
-saveAs("Results", resultsFile);

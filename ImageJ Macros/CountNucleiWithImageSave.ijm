@@ -20,7 +20,7 @@ countedImagesDir = workingDir + "Nuclei Count/";
 resultsFile = workingDir + experimentId + "_Nuclei_Count.csv";
 fileList = getFileList(sourceImagesDir);
 
-
+/*
 //Create a results subfolder
 if (!File.exists(countedImagesDir)) {
 	File.makeDirectory(countedImagesDir);
@@ -29,6 +29,22 @@ if (!File.exists(countedImagesDir)) {
 	print(countedImagesDir);
 	print("");
 }
+*/
+
+//If a Nuclei Count subfolder already exists, ask the user for permission to delete the current folder and create a new one, else quit the program
+if (File.exists(countedImagesDir)) {
+	feedback = getBoolean("WARNING: Delete existing Nuclei Count folder?");
+	if (feedback) {
+		if (deleteFolder(countedImagesDir)) {
+			File.makeDirectory(countedImagesDir);
+		} else {
+			exit("Folder was not deleted");
+		}
+	} else {
+		exit("Nuclei Count Macro terminated");
+	}
+	}
+	
 
 
 
@@ -51,6 +67,10 @@ for (i = 0; i < fileList.length; i++){
 print("Nuclei Count Complete");
 print("Total Files Processed: " + counter);
 
+selectWindow("Summary"); 
+saveAs("Results", resultsFile);
+run("Close All");
+return "true";
 
 
 function countNuclei(outputDir, title, name) { 
@@ -89,6 +109,22 @@ function countNuclei(outputDir, title, name) {
 
 }
 
-selectWindow("Summary"); 
-saveAs("Results", resultsFile);
-run("Close All");
+
+function deleteFolder(folderpath) { 
+	//first delete all files in the folder
+	deleteFileList = getFileList(folderpath);
+		for (i = 0; i < deleteFileList.length; i++){
+			deletefilePath = folderpath +deleteFileList[i];
+			garbage = File.delete(deletefilePath);
+			}	
+
+	//delete the folder itself
+	deletecompleted = File.delete(folderpath);
+	if (deletecompleted) {
+		//print("Delete completed");
+		return true;
+	} else {
+		//print("Delete failed");
+		return false;
+	}
+}
