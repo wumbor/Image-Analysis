@@ -65,23 +65,21 @@ null_group_stats <- combined_data %>%
 
 #Normalize counts
 combined_data <- combined_data %>%
+  mutate(Treatment = trimws(Treatment)) %>%
   mutate(Mean_Normalized_Count = normalize(Count, null_group_stats$avg)) %>%
-  mutate(Median_Normalized_Count = normalize(Count, null_group_stats$med)) %>%
   arrange(desc(Treatment))
 
 
 #Calculate group means and medians
 combined_data_summary <- combined_data %>%
   group_by(Treatment) %>%
-  summarise(Normalized_Mean = mean(Mean_Normalized_Count), Normalized_Median=median(Median_Normalized_Count))
+  summarise(Normalized_Mean = mean(Mean_Normalized_Count))
 
 #Arrange summarised data in preferred format
 TreatmentLevels <- c("Null", "miR#4", "miR#5", "miR#5(L)", "miR#5(M)", "miR#5(H)", "miR#13", "miR#13(L)", "miR#13(M)", "miR#13(H)", "miR#19", "miR#19(L)", "miR#19(M)", "miR#19(H)", "miR#27", "miR#27(L)", "miR#27(M)", "miR#27(H)", "let7b", "LOX", "R848")
-combined_data_summary <- combined_data_summary %>%
-  mutate(Treatment = trimws(Treatment)) 
-
 combined_data_summary$Treatment <- factor(combined_data_summary$Treatment, levels = TreatmentLevels)
 combined_data_summary <- combined_data_summary %>%
+  # select(Treatment, Normalized_Mean) %>% #select only mean normalized values
   arrange(Treatment)
 
 #write data to file
@@ -96,9 +94,9 @@ write.xlsx(combined_data_summary, file = results_excel_file, sheetName = "Nuclei
 
 #save graph of results
 tiff(results_graph_file, width=900, height=800, res=100)
-mean_plot <- ggbarplot(combined_data, x = "Treatment", y = "Mean_Normalized_Count", add = c("mean_se", "jitter"), color = "Treatment", palette = "npg", size = 1)
-median_plot <- ggbarplot(combined_data, x = "Treatment", y = "Median_Normalized_Count", add = c("mean_se", "jitter"), color = "Treatment", palette = "npg", size = 1)
-ggarrange(mean_plot, median_plot, labels = c("Normalised by Mean", "Normalised by Median"), ncol = 2, common.legend = TRUE, legend = "bottom")
+ggbarplot(combined_data, x = "Treatment", y = "Mean_Normalized_Count", add = c("mean_se", "jitter"), size = 1)
+# median_plot <- ggbarplot(combined_data, x = "Treatment", y = "Median_Normalized_Count", add = c("mean_se", "jitter"), color = "Treatment", palette = "npg", size = 1)
+# ggarrange(mean_plot, median_plot, labels = c("Normalised by Mean", "Normalised by Median"), ncol = 2, common.legend = TRUE, legend = "bottom")
 garbage <- dev.off()
 
 
