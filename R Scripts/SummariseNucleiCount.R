@@ -36,6 +36,27 @@ normalize <- function(value, maxi) {
 }
 
 
+parseStandardName <- function(input_string) {
+  codeNameVector <-  c("miR#4", "miR#5", "miR#13", "miR#19", "miR#27")
+  standardNameVector <-  c("Control oligo", "miR-124-5p", "miR-9-5p", "miR-501-3p", "miR-92a-1-5p")
+  codeDoseVector <-  c("\\(L\\)", "\\(LM\\)", "\\(M\\)", "\\(H\\)",  "\\(XH\\)")
+  standardDoseVector <- c("(1)", "(3)", "(5)", "(10)",  "(20)")
+  
+  output <- input_string
+  # output <- str_replace(output, "miR#5", "miR-124-5p")
+  i = 1
+  for(i in 1:length(codeNameVector)){
+    output <- str_replace(output, codeNameVector[i], standardNameVector[i])
+  }
+  
+  i = 1
+  for(i in 1:length(codeDoseVector)){
+    output <- str_replace(output, codeDoseVector[i], standardDoseVector[i])
+  }
+  return(output)
+}
+
+
 #read in file data
 image_sequence <- read.csv(file = microscopy_sequence_file, header = TRUE, sep = ",", skip = img_sequence_header_line)
 image_data <- read.csv(file = microscopy_data_file, header = TRUE, sep = ",")
@@ -80,9 +101,15 @@ combined_data_summary <- combined_data %>%
   group_by(Treatment) %>%
   summarise(Normalized_Mean = mean(Mean_Normalized_Count))
 
+#Rename the treatments to standard names and doses
+combined_data_summary <- combined_data_summary %>%
+  mutate(Codename = Treatment) %>%
+  select(Treatment, Codename, Normalized_Mean) %>%
+  mutate(Treatment = parseStandardName(Treatment))
+
 
 #write data to file
-if (file.access(results_excel_file)){
+if (file.access(results_excel_file)){ #overwrite any existing file
   write.xlsx(combined_data, file = results_excel_file, sheetName = "Nuclei Count", col.names = TRUE, row.names = FALSE, append = TRUE)
 } else {
   write.xlsx(combined_data, file = results_excel_file, sheetName = "Nuclei Count", col.names = TRUE, row.names = FALSE, append = FALSE)
@@ -98,6 +125,7 @@ ggbarplot(combined_data, x = "Treatment", y = "Mean_Normalized_Count", add = c("
 # median_plot <- ggbarplot(combined_data, x = "Treatment", y = "Median_Normalized_Count", add = c("mean_se", "jitter"), color = "Treatment", palette = "npg", size = 1)
 # ggarrange(mean_plot, median_plot, labels = c("Normalised by Mean", "Normalised by Median"), ncol = 2, common.legend = TRUE, legend = "bottom")
 garbage <- dev.off()
+
 
 
 

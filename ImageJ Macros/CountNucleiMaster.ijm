@@ -49,13 +49,6 @@ File.close(f);
 
 
 //ERROR CHECK
-//Throw an error if the TIFF images folder cannot be found
-if (!File.exists(sourceImagesDir)) { 
-	print(" ");
-	print("Error: TIFF images folder not found");
-	print(sourceImagesDir);
-	exit("TIFF images folder not found");
-}
 
 
 //If optimiseThreshold is toggled on, call the optimise threshold macro 
@@ -63,6 +56,15 @@ OptimiseThresholdMacroPath = IJMacrosDir + "OptimiseThreshold.ijm"; //specify pa
 OptimiseThresholdArgs = workingDir + "&&" + RScriptsDir + "&&" + IJMacrosDir; //combine required macro arguments into one string
 
 if (optimiseThreshold) {
+
+		//Throw an error if the TIFF images folder cannot be found
+	if (!File.exists(sourceImagesDir)) { 
+		print(" ");
+		print("Error: TIFF images folder not found");
+		print(sourceImagesDir);
+		exit("TIFF images folder not found");
+	}
+
 	AutoThreshold = runMacro(OptimiseThresholdMacroPath, OptimiseThresholdArgs);
 	AutoThreshold = parseInt(AutoThreshold);
 	NucleiThreshold = AutoThreshold; //change the NucleiThreshold to the one calculated automatically
