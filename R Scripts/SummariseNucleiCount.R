@@ -23,6 +23,7 @@ analysis_log_file <- paste(experiment_id, "_AnalysisLog.txt", sep = "")
 #Specify output files
 results_excel_file <- paste(experiment_id, "_Nuclei_Count.xlsx", sep = "")
 results_graph_file <- paste(experiment_id, "_Nuclei_Count.tiff", sep = "")
+meta_results_file <- paste(dirname(getwd()), "Pooled_Data.csv", sep = "/") 
 
 #Specify header line in microscopy_sequence_file
 img_sequence_header_line <- (grep("Condition", read_lines(microscopy_sequence_file, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1
@@ -57,7 +58,7 @@ parseStandardName <- function(input_string) {
 }
 
 
-#read in file data
+#read in data from files
 image_sequence <- read.csv(file = microscopy_sequence_file, header = TRUE, sep = ",", skip = img_sequence_header_line)
 image_data <- read.csv(file = microscopy_data_file, header = TRUE, sep = ",")
 analysis_parameters <- read.csv(file = analysis_log_file, sep = ",", header = TRUE)
@@ -85,7 +86,7 @@ null_group_stats <- combined_data %>%
   filter(str_detect(Treatment, "Null")) %>%
   summarise(avg=mean(Count), med=median(Count))
 
-#Normalize counts
+#Normalize all counts to mean of null group
 combined_data <- combined_data %>%
   mutate(Treatment = trimws(Treatment)) %>%
   mutate(Mean_Normalized_Count = normalize(Count, null_group_stats$avg))
@@ -108,7 +109,7 @@ combined_data_summary <- combined_data_summary %>%
   mutate(Treatment = parseStandardName(Treatment))
 
 
-#write data to file
+#save the results to an excel spreadsheet
 if (file.access(results_excel_file)){ #overwrite any existing file
   write.xlsx(combined_data, file = results_excel_file, sheetName = "Nuclei Count", col.names = TRUE, row.names = FALSE, append = TRUE)
 } else {
@@ -128,6 +129,14 @@ garbage <- dev.off()
 
 
 
+# Save key experiment details (Experiment#, Parameter Analyzed, Path to Results file) to pooled data sheet
+meta_result <- data.frame("ExperimentID" = experiment_id, "Parameter.Analyzed" = "Nuclei Count", "Result.File.Path" = paste (getwd(), results_excel_file, sep = "/"), stringsAsFactors = FALSE)
 
+
+if (file.exists(meta_results_file)){ #append to an existing file, if any
+  write_csv(meta_result, meta_results_file, na = "NA", append = TRUE, col_names = FALSE)
+} else {
+  write_csv(meta_result, meta_results_file, na = "NA", append = TRUE, col_names = TRUE)
+}
 
 
