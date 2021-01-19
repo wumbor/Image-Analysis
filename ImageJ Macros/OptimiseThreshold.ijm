@@ -4,7 +4,7 @@
 
 setBatchMode(true);
 
-
+run("Clear Results");
 //Retrieve parameters from parent macro
 args = getArgument();
 args = split(args, "&&");
