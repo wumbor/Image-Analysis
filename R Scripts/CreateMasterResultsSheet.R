@@ -15,7 +15,7 @@ pooled_experiment_results_file <- "D:/OneDrive - Charité - Universitätsmedizin
 
 #READ IN DATA FROM INPUT FILES TO CREATE A MASTER DATA SHEET
 #read in data for experiment details and parse columns appropriately
-meta_experiment_details <-read.xlsx(meta_experiment_details_file, 4, encoding = "UTF-8", colClasses =  c(rep("character", 8), "Date", "Date", rep("character", 2))) %>%
+meta_experiment_details <-read.xlsx(meta_experiment_details_file, 4, encoding = "UTF-8", colClasses =  c(rep("character", 8), "Date", "Date")) %>%
   mutate(Start.Date = ymd(Start.Date), End.Date = ymd(End.Date)) 
 
 #read in data for pooled results, parse columns and remove duplicates
@@ -76,8 +76,14 @@ results_excel_file <- paste(parent_directory, outputWorkbookName, ".xlsx", sep =
 
 
 #save the results to an excel spreadsheet
-if (file.access(results_excel_file)){ #overwrite any existing file
+if (file.exists(results_excel_file)){ 
+  wb <- loadWorkbook(results_excel_file)
+    if(any(str_detect(names(getSheets(wb)), outputSheetName))){ #delete the sheet if it already exists
+    removeSheet(wb, sheetName = outputSheetName)  
+    saveWorkbook(wb, results_excel_file)
+  }
   write.xlsx(filtered_results_table, file = results_excel_file, sheetName = outputSheetName, col.names = TRUE, row.names = TRUE, append = TRUE)
+  
 } else {
   write.xlsx(filtered_results_table, file = results_excel_file, sheetName = outputSheetName, col.names = TRUE, row.names = TRUE, append = FALSE)
 }
@@ -85,5 +91,5 @@ if (file.access(results_excel_file)){ #overwrite any existing file
 #plot the pooled result in a bar graph
 scaled_width = 100*length(unique(filtered_results$Treatment))
 tiff(results_graph_file, width=scaled_width, height=800, res=100)
-ggbarplot(filtered_results, x = "Treatment", y = "Normalized_Mean", add = c("mean_se", "jitter"), title = output_filename, size = 1, ylab = unique(DataToSummarise$Parameter.Analyzed), lab.hjust = 0.5) + theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
+ggbarplot(filtered_results, x = "Treatment", y = "Normalized_Mean", add = c("mean_se", "jitter"), title = outputFileName, size = 1, ylab = unique(DataToSummarise$Parameter.Analyzed), lab.hjust = 0.5) + theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
 garbage <- dev.off()
