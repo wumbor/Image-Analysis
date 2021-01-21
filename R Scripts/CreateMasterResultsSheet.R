@@ -33,7 +33,9 @@ DataToSummarise <- master_data_sheet %>%
 
 
 #Create a unique filename based on the parameters selected
-output_filename <- paste(unique(DataToSummarise$Model.System), unique(DataToSummarise$Parameter.Analyzed), unique(DataToSummarise$Duration.of.stimulation), sep = "_") 
+outputFileName <- paste(unique(DataToSummarise$Model.System), unique(DataToSummarise$Parameter.Analyzed), unique(DataToSummarise$Duration.of.stimulation), sep = "_") 
+outputSheetName = paste(unique(DataToSummarise$Parameter.Analyzed), unique(DataToSummarise$Duration.of.stimulation), sep = ".")
+outputWorkbookName = unique(DataToSummarise$Model.System)
 
 
 #create a list containing all the  results from the filtered experiments
@@ -69,14 +71,15 @@ filtered_results_table <- filtered_results %>%
   pivot_wider(names_from = Treatment, values_from = Normalized_Mean)
 
 #specify ouptut files
-results_graph_file <- paste(parent_directory, output_filename, ".tiff", sep = "")
-results_excel_file <- paste(parent_directory, output_filename, ".xlsx", sep = "")
+results_graph_file <- paste(parent_directory, outputFileName, ".tiff", sep = "")
+results_excel_file <- paste(parent_directory, outputWorkbookName, ".xlsx", sep = "")
+
 
 #save the results to an excel spreadsheet
 if (file.access(results_excel_file)){ #overwrite any existing file
-  write.xlsx(filtered_results_table, file = results_excel_file, sheetName = "Nuclei Count", col.names = TRUE, row.names = TRUE, append = TRUE)
+  write.xlsx(filtered_results_table, file = results_excel_file, sheetName = outputSheetName, col.names = TRUE, row.names = TRUE, append = TRUE)
 } else {
-  write.xlsx(filtered_results_table, file = results_excel_file, sheetName = "Nuclei Count", col.names = TRUE, row.names = TRUE, append = FALSE)
+  write.xlsx(filtered_results_table, file = results_excel_file, sheetName = outputSheetName, col.names = TRUE, row.names = TRUE, append = FALSE)
 }
 
 #plot the pooled result in a bar graph
