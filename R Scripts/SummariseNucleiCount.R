@@ -38,8 +38,8 @@ normalize <- function(value, maxi) {
 
 
 parseStandardName <- function(input_string) {
-  codeNameVector <-  c("miR#4", "miR#5", "miR#13", "miR#19", "miR#27")
-  standardNameVector <-  c("Control oligo", "miR-124-5p", "miR-9-5p", "miR-501-3p", "miR-92a-1-5p")
+  codeNameVector <-  c("miR#4", "miR#5", "miR#13", "miR#19", "miR#27", "TL8")
+  standardNameVector <-  c("Control oligo", "miR-124-5p", "miR-9-5p", "miR-501-3p", "miR-92a-1-5p", "TL8-506")
   codeDoseVector <-  c("\\(L\\)", "\\(LM\\)", "\\(M\\)", "\\(H\\)",  "\\(XH\\)")
   standardDoseVector <- c("(1)", "(3)", "(5)", "(10)",  "(20)")
   
@@ -130,7 +130,7 @@ garbage <- dev.off()
 
 
 # Save key experiment details (Experiment#, Parameter Analyzed, Path to Results file) to pooled data sheet
-meta_result <- data.frame("ExperimentID" = experiment_id, "Parameter.Analyzed" = "Nuclei Count", "Result.File.Path" = paste (getwd(), results_excel_file, sep = "/"), stringsAsFactors = FALSE)
+meta_result <- data.frame("ExperimentID" = experiment_id, "Parameter.Analyzed" = "NeuNNucleiCount", "Result.File.Path" = paste (getwd(), results_excel_file, sep = "/"), stringsAsFactors = FALSE)
 
 
 if (file.exists(meta_results_file)){ #append to an existing file, if any
