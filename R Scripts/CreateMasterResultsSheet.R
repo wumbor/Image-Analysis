@@ -29,7 +29,7 @@ master_data_sheet <- inner_join(pooled_experiment_results, meta_experiment_detai
 #THIS IS THE PART THAT NEEDS CHANGING
 #Filter out the desired results by key parameters i.e. model system, duration of treatment, parameter analyzed
 DataToSummarise <- master_data_sheet %>%
-  filter(Duration.of.stimulation == "5 days", Model.System =="NeuronsWT", Parameter.Analyzed =="NeuNNucleiCount")
+  filter(Duration.of.stimulation == "1 day", Model.System =="NeuronsWT", Parameter.Analyzed =="NeuNNucleiCount")
 
 
 #Create a unique filename based on the parameters selected

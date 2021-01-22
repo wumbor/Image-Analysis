@@ -43,6 +43,8 @@ if (File.exists(countedImagesDir)) {
 	} else {
 		exit("Nuclei Count Macro terminated");
 	}
+	} else {
+		File.makeDirectory(countedImagesDir);
 	}
 	
 

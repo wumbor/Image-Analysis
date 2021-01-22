@@ -118,6 +118,18 @@ if (file.access(results_excel_file)){ #overwrite any existing file
 write.xlsx(combined_data_summary, file = results_excel_file, sheetName = "Nuclei Count Summary", col.names = TRUE, append = TRUE)
 write.xlsx(analysis_parameters, file = results_excel_file, sheetName = "Analysis Parameters", col.names = FALSE, row.names = FALSE, append = TRUE)
 
+#Outlier Detection
+dt <- combined_data
+var <- combined_data$Count
+var_name <- eval(substitute(var),eval(dt))
+outlier <- boxplot.stats(var_name)$out
+
+suspected_outliers <- combined_data %>%
+  filter(Count %in% outlier)
+
+if(length(outlier)){
+  write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
+} 
 
 #save graph of results
 scaled_width = 100*length(unique(combined_data_summary$Treatment))
@@ -138,5 +150,12 @@ if (file.exists(meta_results_file)){ #append to an existing file, if any
 } else {
   write_csv(meta_result, meta_results_file, na = "NA", append = TRUE, col_names = TRUE)
 }
+
+
+
+
+
+
+
 
 
