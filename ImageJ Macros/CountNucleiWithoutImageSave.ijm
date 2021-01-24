@@ -4,7 +4,7 @@
 
 setBatchMode(true);
 run("Clear Results");
-
+run("Set Measurements...", "area mean modal median limit display redirect=None decimal=3");
 //Retrieve parameters from parent macro
 args = getArgument();
 args = split(args, "&&");

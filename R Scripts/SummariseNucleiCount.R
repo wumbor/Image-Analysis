@@ -10,6 +10,10 @@ working_directory <- as.character(myarg[6])
 setwd(working_directory)  #set working dir based on command line arguments
 
 
+#TESTING SECTION
+# working_directory <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/R Scripts/2020_08_6B_VK"
+# setwd(working_directory)
+
 
 #define key global variables
 experiment_id <- str_split(working_directory, "/", simplify = TRUE)
@@ -57,86 +61,92 @@ parseStandardName <- function(input_string) {
   return(output)
 }
 
+TreatmentLevels <- c("Null", "Control oligo", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8")
+
 
 #read in data from files
-image_sequence <- read.csv(file = microscopy_sequence_file, header = TRUE, sep = ",", skip = img_sequence_header_line)
-image_data <- read.csv(file = microscopy_data_file, header = TRUE, sep = ",")
+image_sequence <- read.csv(file = microscopy_sequence_file, colClasses = c(rep("numeric", 2), rep("character", 2)), header = TRUE, sep = ",", skip = img_sequence_header_line)
+image_data <- read.csv(file = microscopy_data_file, colClasses = c("character", rep("numeric", 4)), header = TRUE, sep = ",")
 analysis_parameters <- read.csv(file = analysis_log_file, sep = ",", header = TRUE)
+
+
 
 #process image sequence data
 image_sequence <- image_sequence %>%
   rename(Original_Filename = Filename) %>%
-  mutate(Original_Filename = as.character(Original_Filename)) %>%
   arrange(Original_Filename)
 
 #process image count data
 image_data <- image_data %>%
   rename(Processed_Filename = Slice) %>%
-  mutate(Processed_Filename = as.character(Processed_Filename)) %>%
   arrange(Processed_Filename) %>%
   select(-Mode, -Median, -Mean)
 
-#merge image sequence and image count tables
+#merge image sequence and image count tables and rearrange data to preferred presentation order
 combined_data <- bind_cols(image_sequence, image_data) %>%
   separate(Condition, sep = "_", into = c("Treatment", "Field")) %>%
-  mutate(Field = as.numeric(Field))
+  mutate(Field = as.numeric(Field)) %>%
+  mutate(Treatment = parseStandardName(trimws(Treatment))) 
+combined_data$Treatment <- factor(combined_data$Treatment, levels = TreatmentLevels)
+
+
+
+#summarise the mean and median for every coverslip
+combinedDataPerCoverslip <- combined_data %>%
+  group_by(Treatment, Coverslip) %>%
+  summarise(Mean = mean(Count), Median = median(Count)) 
+
 
 #calculate mean and median of null group
-null_group_stats <- combined_data %>%
-  filter(str_detect(Treatment, "Null")) %>%
-  summarise(avg=mean(Count), med=median(Count))
+null_group_stats <- combinedDataPerCoverslip %>%
+  filter(Treatment=="Null") %>%
+  summarise(AvgMean = mean(Mean), AvgMedian = mean(Median)) 
 
-#Normalize all counts to mean of null group
-combined_data <- combined_data %>%
-  mutate(Treatment = trimws(Treatment)) %>%
-  mutate(Mean_Normalized_Count = normalize(Count, null_group_stats$avg))
 
-#Rearrange data to preferred presentation order
-TreatmentLevels <- c("Null", "miR#4", "miR#5", "miR#5(L)", "miR#5(M)", "miR#5(H)", "miR#13", "miR#13(L)", "miR#13(M)", "miR#13(H)", "miR#19", "miR#19(L)", "miR#19(M)", "miR#19(H)", "miR#27", "miR#27(L)", "miR#27(M)", "miR#27(H)", "let7b", "LOX", "R848")
-combined_data$Treatment <- factor(combined_data$Treatment, levels = TreatmentLevels)
-combined_data <- combined_data %>%
-  arrange(Treatment)
+#Normalize all counts to null group stats
+combinedDataPerCoverslip <- combinedDataPerCoverslip %>%
+  mutate(NormalizedMean = normalize(Mean, null_group_stats$AvgMean), NormalizedMedian = normalize(Median, null_group_stats$AvgMedian))
 
-#Calculate group means and medians
-combined_data_summary <- combined_data %>%
+
+summaryReport <- combinedDataPerCoverslip %>%
   group_by(Treatment) %>%
-  summarise(Normalized_Mean = mean(Mean_Normalized_Count))
-
-#Rename the treatments to standard names and doses
-combined_data_summary <- combined_data_summary %>%
-  mutate(Codename = Treatment) %>%
-  select(Treatment, Codename, Normalized_Mean) %>%
-  mutate(Treatment = parseStandardName(Treatment))
+  summarise(NormalizedMean = mean(NormalizedMean), NormalizedMedian = mean(NormalizedMedian))
 
 
 #save the results to an excel spreadsheet
 if (file.access(results_excel_file)){ #overwrite any existing file
-  write.xlsx(combined_data, file = results_excel_file, sheetName = "Nuclei Count", col.names = TRUE, row.names = FALSE, append = TRUE)
+  write.xlsx(combined_data, file = results_excel_file, sheetName = "Raw Data", col.names = TRUE, row.names = FALSE, append = TRUE)
 } else {
-  write.xlsx(combined_data, file = results_excel_file, sheetName = "Nuclei Count", col.names = TRUE, row.names = FALSE, append = FALSE)
+  write.xlsx(combined_data, file = results_excel_file, sheetName = "Raw Data", col.names = TRUE, row.names = FALSE, append = FALSE)
 }
-write.xlsx(combined_data_summary, file = results_excel_file, sheetName = "Nuclei Count Summary", col.names = TRUE, append = TRUE)
+write.xlsx(summaryReport, file = results_excel_file, sheetName = "Nuclei Count Summary", col.names = TRUE, append = TRUE)
 write.xlsx(analysis_parameters, file = results_excel_file, sheetName = "Analysis Parameters", col.names = FALSE, row.names = FALSE, append = TRUE)
 
+
 #Outlier Detection
-dt <- combined_data
-var <- combined_data$Count
-var_name <- eval(substitute(var),eval(dt))
-outlier <- boxplot.stats(var_name)$out
-
-suspected_outliers <- combined_data %>%
-  filter(Count %in% outlier)
-
-if(length(outlier)){
-  write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
-} 
+# dt <- combined_data
+# var <- combined_data$Count
+# var_name <- eval(substitute(var),eval(dt))
+# outlier <- boxplot.stats(var_name)$out
+# 
+# suspected_outliers <- combined_data %>%
+#   filter(Count %in% outlier)
+# 
+# if(length(outlier)){
+#   write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
+# } 
 
 #save graph of results
-scaled_width = 100*length(unique(combined_data_summary$Treatment))
+scaled_width = 100*length(unique(summaryReport$Treatment))
 tiff(results_graph_file, width=scaled_width, height=800, res=100)
-ggbarplot(combined_data, x = "Treatment", y = "Mean_Normalized_Count", add = c("mean_se", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", title = experiment_id, lab.hjust = 0.5) + theme(plot.title = element_text(hjust = 0.5))
-# median_plot <- ggbarplot(combined_data, x = "Treatment", y = "Median_Normalized_Count", add = c("mean_se", "jitter"), color = "Treatment", palette = "npg", size = 1)
-# ggarrange(mean_plot, median_plot, labels = c("Normalised by Mean", "Normalised by Median"), ncol = 2, common.legend = TRUE, legend = "bottom")
+
+plottheme <- theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
+
+mean_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMean", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalized by Mean") + plottheme
+
+median_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMedian", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalized by Median") + plottheme
+
+ggarrange(mean_plot, median_plot, ncol = 2, common.legend = TRUE, legend = "bottom")
 garbage <- dev.off()
 
 
