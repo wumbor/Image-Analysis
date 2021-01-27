@@ -11,7 +11,7 @@ setwd(working_directory)  #set working dir based on command line arguments
 
 
 #TESTING SECTION
-# working_directory <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/R Scripts/2020_08_6B_VK"
+# working_directory <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/R Scripts/2021_01_2_VK"
 # setwd(working_directory)
 
 
@@ -123,30 +123,19 @@ write.xlsx(summaryReport, file = results_excel_file, sheetName = "Nuclei Count S
 write.xlsx(analysis_parameters, file = results_excel_file, sheetName = "Analysis Parameters", col.names = FALSE, row.names = FALSE, append = TRUE)
 
 
-#Outlier Detection
-# dt <- combined_data
-# var <- combined_data$Count
-# var_name <- eval(substitute(var),eval(dt))
-# outlier <- boxplot.stats(var_name)$out
-# 
-# suspected_outliers <- combined_data %>%
-#   filter(Count %in% outlier)
-# 
-# if(length(outlier)){
-#   write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
-# } 
-
 #save graph of results
 scaled_width = 100*length(unique(summaryReport$Treatment))
 tiff(results_graph_file, width=scaled_width, height=800, res=100)
 
 plottheme <- theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
 
-mean_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMean", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalized by Mean") + plottheme
+mean_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMean", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalised Mean") + plottheme
 
-median_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMedian", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalized by Median") + plottheme
+median_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMedian", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalised Median") + plottheme
 
-ggarrange(mean_plot, median_plot, ncol = 2, common.legend = TRUE, legend = "bottom")
+combined_plot <- ggarrange(mean_plot, median_plot, ncol = 2, common.legend = TRUE, legend = "bottom")  
+
+annotate_figure(combined_plot, top = text_grob(experiment_id, face = "bold", size = 14))
 garbage <- dev.off()
 
 
@@ -163,8 +152,21 @@ if (file.exists(meta_results_file)){ #append to an existing file, if any
 
 
 
+#Detecct and report suspected outliers in a separate sheet
+dt <- combined_data
+var <- combined_data$Count
+var_name <- eval(substitute(var),eval(dt))
+outlier <- boxplot.stats(var_name)$out
 
+suspected_outliers <- combined_data %>%
+  filter(Count %in% outlier)
 
+if(length(outlier)){
+  write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
+} else {
+  suspected_outliers <- data.frame("ExperimentID" = experiment_id, "Report" = "NO SUSPECTED OUTLIERS DETECTED", stringsAsFactors = FALSE)
+  write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
+}
 
 
 

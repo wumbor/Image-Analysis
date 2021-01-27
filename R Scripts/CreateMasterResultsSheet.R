@@ -18,11 +18,12 @@ TreatmentLevels <- c("Null", "Control oligo", "miR-124-5p", "miR-124-5p(1)", "mi
 #READ IN DATA FROM INPUT FILES TO CREATE A MASTER DATA SHEET
 #read in data for experiment details and parse columns appropriately
 meta_experiment_details <-read.xlsx(meta_experiment_details_file, 4, encoding = "UTF-8", colClasses =  c(rep("character", 8), "Date", "Date")) %>%
-  mutate(Start.Date = ymd(Start.Date), End.Date = ymd(End.Date)) 
+  mutate(Start.Date = ymd(Start.Date), End.Date = ymd(End.Date)) %>%
+  distinct()
 
 #read in data for pooled results, parse columns and remove duplicates
 pooled_experiment_results <- read.csv(file = pooled_experiment_results_file, header = TRUE, sep = ",", fileEncoding = "UTF-8", colClasses = c(rep("character", 3))) %>% 
-  distinct(ExperimentID, Parameter.Analyzed, Result.File.Path)
+  distinct()
 
 #join the two tables to create master data sheet
 master_data_sheet <- inner_join(pooled_experiment_results, meta_experiment_details, by = c("ExperimentID", "Parameter.Analyzed"))
@@ -31,8 +32,8 @@ master_data_sheet <- inner_join(pooled_experiment_results, meta_experiment_detai
 #THIS IS THE PART THAT NEEDS CHANGING
 #Filter out the desired results by key parameters i.e. model system, duration of treatment, parameter analyzed
 DataToSummarise <- master_data_sheet %>%
-  filter(Duration.of.stimulation == "5 days", Model.System =="NeuronsWT", Parameter.Analyzed =="NeuNNucleiCount")
-
+  filter(Duration.of.stimulation == "5 days", Model.System =="NeuronsWT", Parameter.Analyzed =="MAP2Fluorescence")
+  # filter(Duration.of.stimulation == "5 days", Model.System =="NeuronsWT", Parameter.Analyzed =="NeuNNucleiCount")
 
 #Create a unique filename based on the parameters selected
 outputFileName <- paste(unique(DataToSummarise$Model.System), unique(DataToSummarise$Parameter.Analyzed), unique(DataToSummarise$Duration.of.stimulation), sep = "_") 
@@ -69,13 +70,15 @@ filtered_results <- filtered_results%>%
 #flip the rows into columns
 filtered_results_mean_table <- filtered_results %>%
   select(ExperimentID, Treatment, NormalizedMean) %>%
-  pivot_wider(names_from = Treatment, values_from = NormalizedMean) %>%
-  add_column(Parameter.Analyzed = rep("Normalized.Mean", length(filtered_results_mean_table$ExperimentID)), .before = "ExperimentID")
+  pivot_wider(names_from = Treatment, values_from = NormalizedMean) 
+
+filtered_results_mean_table <- add_column(filtered_results_mean_table, Parameter.Analyzed = rep("Normalized.Mean", length(filtered_results_mean_table$ExperimentID)), .before = "ExperimentID")
 
 filtered_results_median_table <- filtered_results %>%
   select(ExperimentID, Treatment, NormalizedMedian) %>%
-  pivot_wider(names_from = Treatment, values_from = NormalizedMedian) %>%
-  add_column(Parameter.Analyzed = rep("Normalized.Median", length(filtered_results_median_table$ExperimentID)), .before = "ExperimentID")
+  pivot_wider(names_from = Treatment, values_from = NormalizedMedian) 
+
+filtered_results_median_table <- add_column(filtered_results_median_table, Parameter.Analyzed = rep("Normalized.Median", length(filtered_results_median_table$ExperimentID)), .before = "ExperimentID")
 
 
 #specify ouptut files
