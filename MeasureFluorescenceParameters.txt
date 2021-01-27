@@ -1,0 +1,10 @@
+
+IJMacrosDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/ImageJ Macros/"
+RScriptsDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/"
+
+channelOfInterest = C2
+fluoParameter = MAP2
+measureFluoresence? = TRUE
+plotData? = TRUE
+
+
