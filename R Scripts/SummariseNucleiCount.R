@@ -8,7 +8,7 @@ library(ggsci)
 myarg <- commandArgs()
 working_directory <- as.character(myarg[6])
 setwd(working_directory)  #set working dir based on command line arguments
-
+main_project_folder <- dirname(dirname(getwd()))
 
 #TESTING SECTION
 # working_directory <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/R Scripts/2021_01_2_VK"
@@ -27,7 +27,7 @@ analysis_log_file <- paste(experiment_id, "_AnalysisLog.txt", sep = "")
 #Specify output files
 results_excel_file <- paste(experiment_id, "_Nuclei_Count.xlsx", sep = "")
 results_graph_file <- paste(experiment_id, "_Nuclei_Count.tiff", sep = "")
-meta_results_file <- paste(dirname(getwd()), "Pooled_Data.csv", sep = "/") 
+meta_results_file <- paste(main_project_folder, "Pooled_Data.csv", sep = "/")
 
 #Specify header line in microscopy_sequence_file
 img_sequence_header_line <- (grep("Condition", read_lines(microscopy_sequence_file, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1
@@ -46,14 +46,14 @@ parseStandardName <- function(input_string) {
   standardNameVector <-  c("Control oligo", "miR-124-5p", "miR-9-5p", "miR-501-3p", "miR-92a-1-5p", "TL8-506")
   codeDoseVector <-  c("\\(L\\)", "\\(LM\\)", "\\(M\\)", "\\(H\\)",  "\\(XH\\)")
   standardDoseVector <- c("(1)", "(3)", "(5)", "(10)",  "(20)")
-  
+
   output <- input_string
   # output <- str_replace(output, "miR#5", "miR-124-5p")
   i = 1
   for(i in 1:length(codeNameVector)){
     output <- str_replace(output, codeNameVector[i], standardNameVector[i])
   }
-  
+
   i = 1
   for(i in 1:length(codeDoseVector)){
     output <- str_replace(output, codeDoseVector[i], standardDoseVector[i])
@@ -61,7 +61,7 @@ parseStandardName <- function(input_string) {
   return(output)
 }
 
-TreatmentLevels <- c("Null", "Control oligo", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8")
+TreatmentLevels <- c("Null", "Control oligo", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8-506")
 
 
 #read in data from files
@@ -86,7 +86,7 @@ image_data <- image_data %>%
 combined_data <- bind_cols(image_sequence, image_data) %>%
   separate(Condition, sep = "_", into = c("Treatment", "Field")) %>%
   mutate(Field = as.numeric(Field)) %>%
-  mutate(Treatment = parseStandardName(trimws(Treatment))) 
+  mutate(Treatment = parseStandardName(trimws(Treatment)))
 combined_data$Treatment <- factor(combined_data$Treatment, levels = TreatmentLevels)
 
 
@@ -94,13 +94,13 @@ combined_data$Treatment <- factor(combined_data$Treatment, levels = TreatmentLev
 #summarise the mean and median for every coverslip
 combinedDataPerCoverslip <- combined_data %>%
   group_by(Treatment, Coverslip) %>%
-  summarise(Mean = mean(Count), Median = median(Count)) 
+  summarise(Mean = mean(Count), Median = median(Count))
 
 
 #calculate mean and median of null group
 null_group_stats <- combinedDataPerCoverslip %>%
   filter(Treatment=="Null") %>%
-  summarise(AvgMean = mean(Mean), AvgMedian = mean(Median)) 
+  summarise(AvgMean = mean(Mean), AvgMedian = mean(Median))
 
 
 #Normalize all counts to null group stats
@@ -133,7 +133,7 @@ mean_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "Normalize
 
 median_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMedian", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalised Median") + plottheme
 
-combined_plot <- ggarrange(mean_plot, median_plot, ncol = 2, common.legend = TRUE, legend = "bottom")  
+combined_plot <- ggarrange(mean_plot, median_plot, ncol = 2, common.legend = TRUE, legend = "bottom")
 
 annotate_figure(combined_plot, top = text_grob(experiment_id, face = "bold", size = 14))
 garbage <- dev.off()
@@ -167,7 +167,3 @@ if(length(outlier)){
   suspected_outliers <- data.frame("ExperimentID" = experiment_id, "Report" = "NO SUSPECTED OUTLIERS DETECTED", stringsAsFactors = FALSE)
   write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
 }
-
-
-
-
