@@ -15,7 +15,7 @@ var countNuclei;
 var saveImages;
 var plotData;
 var optimiseThreshold;
-
+var inVivo;
 
 //Request working directory from user
 workingDir = getDirectory("Choose Source Folder");
@@ -29,7 +29,6 @@ sourceImagesDir = workingDir + "TIFFs/"; //define source images directory
 //Load key parameters from file
 nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt";
 loadAllParameters(nucleiCountParametersFile);
-
 
 
 //Initialise AnalysisLog file
@@ -101,17 +100,23 @@ if (countNuclei) { //perform a nuclei count if countNuclei is set to true
 
 
 
-//Run the SummariseNucleiCount R script to summarise the data and plot graphs
+//Run the appropriate R script to summarise the data and plot graphs
 callRScriptMacroPath = IJMacrosDir + "CallRScript.ijm";
-pathToRScript = RScriptsDir + "SummariseNucleiCount.R"; //speficy the path to the R script to be run
-CallRScriptArgs = workingDir + "&&" + pathToRScript; //combine macro arguments into one string
 
+if (inVivo) {
+	RScript = "SummariseInVivoNucleiCount.R";
+} else {
+	RScript = "SummariseNucleiCount.R";
+}
+
+//pathToRScript = RScriptsDir + RScript; 
+CallRScriptArgs = workingDir + "&&" + RScriptsDir + RScript; //combine macro arguments into one string
 nucleiCountResultsFile = workingDir + experimentId +  "_Nuclei_Count.csv";
 imageSequenceFile = workingDir + experimentId + "_Image_Capture.txt";
 
 
 if (plotData){
-		File.append("Analysis Script, SummariseNucleiCount.R", analysisLogFile);
+		File.append("Analysis Script, " + RScript, analysisLogFile);
 		if (!File.exists(nucleiCountResultsFile)) { //check to ensure a nuclei count results file is present
 			print(" ");
 			print("Error: Nuclei Count Results file not found");
@@ -135,6 +140,7 @@ if (plotData){
 
 garbage = File.delete(analysisLogFile); //delete the analysis log file
 garbage = File.delete(nucleiCountResultsFile); //delete the preliminary nuclei count results file
+
 
 
 //Functions used in this macro
@@ -163,6 +169,8 @@ function loadAllParameters(parametersFilePath) {
 			plotData = retrieveParameter(parametersFileLines[i]); //Retrieve the plotData option
 		} else if (parametersFileLines[i].contains("optimiseThreshold?")) {
 			optimiseThreshold = retrieveParameter(parametersFileLines[i]); //Retrieve the optimiseThreshold option
+		}else if (parametersFileLines[i].contains("inVivo?")) {
+			inVivo = retrieveParameter(parametersFileLines[i]); //Retrieve the inVivo option
 		}
 		}
 }
