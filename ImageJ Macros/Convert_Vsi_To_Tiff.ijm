@@ -1,11 +1,14 @@
 setBatchMode(true);
 
 //Select source folder and retrieve file list 
-sourceDir = getDirectory("Choose Source Folder");
-fileList = getFileList(sourceDir);
+userDir = getDirectory("Choose Source Folder");
 
 //Create an output subfolder
-outputDir = sourceDir + "TIFFs" + File.separator;
+outputDir = userDir + "TIFFs" + File.separator;
+sourceDir = userDir + "Raw Data" + File.separator;
+fileList = getFileList(sourceDir);
+
+
 if (!File.exists(outputDir)) {
 	File.makeDirectory(outputDir);
 	print("");
