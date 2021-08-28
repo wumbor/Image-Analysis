@@ -1,7 +1,5 @@
-# This script analyses data from the miRDistribution macro to plot graphs of relative distribution of uptaken miRNAs
+# This script analyses data from the miRDistribution macro to plot graphs of kinetics of miRNA uptake
 #Written by Victor Kumbol, August 2021
-
-
 
 #load required libraries
 library(tidyverse)
@@ -10,30 +8,23 @@ library(ggpubr)
 library(ggsci)
 library(bayestestR)
 
-
-#define designations for channels
-treatment <- "miR-92a"
-channelMarkers <- tibble(Channel = c("red", "redInverse", "green", "blue"), Region = c("Endosomal miRNA", "Non-Endosomal miRNA", "Endosomal DAPI", "Endosomal phRodored"))
-resultsExcelFile <- paste(treatment, "Kinetics.xlsx", sep = "")
-resultsGraphFile <- paste(treatment, "Kinetics.tiff", sep = "")
-
-
-frameInterval <- 2 #interval between frames
-timeOffset <- 6/60 #time offset after addition of miRNA mix
-
-# #retrieve image sequence information from file
-# imageSequence <- read.csv("Image_Capture.txt")
-# imageSequence <- imageSequence %>%
-#   select(Filename, Treatment, Well)
+#define custom functions
+extractImageParameter <- function(parameterName, imageParameters) { 
+  parameter <- imageParameters$Value[str_detect(imageParameters$Parameter, parameterName)]
+  parameter <- trimws(parameter)
+  parameter <- str_split(parameter, " ", simplify = TRUE)
+  parameter <- parameter[1]
+  return(parameter)
+}
 
 
-
-#create a function to summarise the results from all files into on tibble
-processUptakeData <- function(working_directory) {
-  setwd(working_directory)
+processUptakeData <- function(imageDataFolder) {
+  
+  originalWorkingDirectory <- getwd()
+  setwd(imageDataFolder)
   
   #retrieve list of results files
-  FilesToProcess <- list.files(working_directory, pattern = "*.csv")
+  FilesToProcess <- list.files(imageDataFolder, pattern = "*.csv")
   ProcessedData <- list()
   
   #iterate over the files in the folder and process each
@@ -44,10 +35,10 @@ processUptakeData <- function(working_directory) {
       select(Channel, Area, Mean, RawIntDen) %>%
       separate(Channel, into = c("Channel", "Slice"), sep = "-") %>%
       mutate(Channel = trimws(Channel))
-
+    
     summary_data <- raw_data %>%
       select(-RawIntDen)
-
+    
     #append results to the ProcessedData list
     ProcessedData <- append(ProcessedData, list(summary_data))
   }
@@ -57,15 +48,18 @@ processUptakeData <- function(working_directory) {
   #merge results into one
   ProcessedData <- bind_rows(ProcessedData, .id="Filename")
   ProcessedData <- ProcessedData %>%
-    separate(Filename, into = c("ExpID", "FrameID"), sep = "_miRKinetics_" ) %>%
+    rename(Parameter = Channel) %>%
+    mutate(Parameter = str_replace(Parameter, "red inverse", "redInverse")) %>%
+    separate(Filename, into = c("Filename", "Channel.FrameID"), sep = "_miRKinetics_" ) %>%
+    separate(Channel.FrameID, into = c("Channel", "FrameID"), sep = "-") %>%
     separate(FrameID, into = c("FrameID", NA), sep = "\\.") %>%
-    mutate(FrameID = as.numeric(FrameID), Slice = as.numeric(Slice)) %>%
-    mutate(Channel = str_replace(Channel, "red inverse", "redInverse"))
+    mutate(FrameID = as.numeric(FrameID), Slice = as.numeric(Slice))
   
+  setwd(originalWorkingDirectory)
   return(ProcessedData)
 }
-  
-  
+
+
 
 
 
@@ -78,58 +72,94 @@ exportResults <- function(combinedData, timeOffset, frameInterval, resultsExcelF
   
   combinedDataPerSlice <- combinedData %>% 
     select(-Area) %>%
-    pivot_wider(names_from = Channel, values_from = Mean) %>% 
+    pivot_wider(names_from = Parameter, values_from = Mean) %>% 
     mutate(prop = red/(red + redInverse)) %>% #compute other parameters
-    pivot_longer(red:prop, names_to = "Channel", values_to = "Value") %>%
-    mutate(RecordingTime.h = (FrameID*frameInterval)/60) %>%
-    mutate(AbsoluteTime.h = RecordingTime.h + timeOffset)
-  combinedDataPerSlice <- left_join(combinedDataPerSlice, channelMarkers, by = "Channel")
+    pivot_longer(red:prop, names_to = "Parameter", values_to = "Value") %>%
+    mutate(RecordingTime.h = ((FrameID-1)*frameInterval)/60) %>%
+    mutate(AbsoluteTime.h = RecordingTime.h + (timeOffset/60)) %>%
+    group_by(Filename, Channel, Parameter, Slice) %>%
+    mutate(NormalisedValue = (Value/first(Value))) %>%
+    ungroup()
+  combinedDataPerSlice <- left_join(combinedDataPerSlice, ParameterLabels, by = "Parameter")
+  combinedDataPerSlice <- left_join(combinedDataPerSlice, ChannelLabels, by = "Channel")
   
+  combinedDataPerFrame <- combinedDataPerSlice %>%
+    select(-c(Parameter, Channel, RecordingTime.h)) %>%
+    filter(Region != "Non-Endosomal") %>%
+    group_by(Filename, AbsoluteTime.h, ChannelLabel, Region) %>%
+    summarise(Mean = mean(Value),  Mean.SD = sd(Value), NormalisedMean = mean(NormalisedValue), NormalisedMean.SD = sd(NormalisedValue))
   
-  combinedDataPerFrame <- combinedData %>%
-    group_by(ExpID, FrameID, Channel) %>%
-    summarise(Area = mean(Area), Mean = mean(Mean)) %>%
-    group_by(ExpID, Channel) %>%
-    mutate(NormalisedMean = (Mean/first(Mean))) %>%
-    mutate(RecordingTime.h = (FrameID*frameInterval)/60) %>%
-    mutate(AbsoluteTime.h = RecordingTime.h + timeOffset)
-  combinedDataPerFrame <- left_join(combinedDataPerFrame, channelMarkers, by = "Channel")
-   
-  # write.xlsx(as.data.frame(combinedDataPerSlice), file = resultsExcelFile, sheetName = "combinedDataPerSlice", col.names = TRUE, row.names = FALSE, append = TRUE)
+  # write.xlsx(as.data.frame(combinedDataPerFrame), file = resultsExcelFile, sheetName = "combinedDataPerFrame", col.names = TRUE, row.names = FALSE, append = TRUE)
   
-  write.xlsx(as.data.frame(combinedDataPerFrame), file = resultsExcelFile, sheetName = "combinedDataPerFrame", col.names = TRUE, row.names = FALSE, append = TRUE)
-  
-  
+  kineticsPlots <- list()
   #Plot graph of proportion
-  # combinedDataPerSlice %>%
-  #   filter(Channel %in% c("prop")) %>%
-  #   ggline(x= "AbsoluteTime.h", y = "Value", color ="#006600",  numeric.x.axis = TRUE, xticks.by = 1, ylab = "Endosomal/Non-Endosomal Proportion", add = "mean")
-  # 
+  p1 <- combinedDataPerSlice %>%
+    filter(Region %in% c("Endosomal Proportion")) %>%
+    filter(ChannelLabel%in% c("miRNA", "DAPI", "phRodored")) %>%
+    ggline(x= "AbsoluteTime.h", y = "Value", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Endosomal/Non-Endosomal Proportion", add = "mean_sd")
+  kineticsPlots <- append(kineticsPlots, list(p1))
   
-  #Plot graph of Endosomal and Non-Endosomal miRNA
-  # combinedDataPerSlice %>%
-  #   filter(Channel %in% c("red", "redInverse")) %>%
-  #   ggline(x= "AbsoluteTime.h", y = "Value", linetype = "Region", shape = "Region", color ="#006600", numeric.x.axis = TRUE, xticks.by = 1, ylab = "Mean Fluorescence Intensity", add = "mean", point.size = 1)
+  #Plot graph of Mean Fluorescence with SE
+  p2 <- combinedDataPerSlice %>%
+    filter(Region=="Endosomal") %>%
+    ggline(x= "AbsoluteTime.h", y = "Value", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Mean Fluorescence Intensity", add = "mean_sd")
+  kineticsPlots <- append(kineticsPlots, list(p2))
   
-  #Plot Normalised Fluorescence
-  kineticsPlot <- combinedDataPerFrame %>%
-    ggline(x= "AbsoluteTime.h", y = "NormalisedMean", ylab = "Relative Fluorescence Intensity", linetype = "Region", shape = "Region", color ="#006600", numeric.x.axis = TRUE, xticks.by = 1)
-  
-  return(kineticsPlot)
+  kineticsPlots <- ggarrange(plotlist=kineticsPlots, nrow = 2)
+  return(kineticsPlots)
 }
 
+
+
+#initialise workspace and allow user to define working directory
+workingDirectory <- choose.dir(default = getwd(), caption = "Select Source folder")
+setwd(workingDirectory)
+experimentId <- str_split(workingDirectory, "\\\\", simplify = TRUE)
+experimentId <- experimentId[length(experimentId)]
+
+#Specify input files
+imageParametersFile <- paste(experimentId, "_Image_Capture.txt", sep = "")
+imageDataFolder <- paste(workingDirectory, "\\", experimentId, "_Results", sep = "")
+imageParametersHeaderLine <- (grep("Parameter", read_lines(imageParametersFile, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1
+
+#Read analysis parameters from file
+imageParameters <- read.csv(file = imageParametersFile, header = TRUE, sep = ":", skip = imageParametersHeaderLine)
+treatment <- extractImageParameter("Treatment", imageParameters)
+frameInterval <- as.numeric(extractImageParameter("Frame Interval", imageParameters))
+timeOffset <- as.numeric(extractImageParameter("Time Offset", imageParameters))
+sliceSelectionRange <- extractImageParameter("Slice Selection", imageParameters)
+sliceSelectionRange <- str_split(sliceSelectionRange, "-", simplify = TRUE)
+sliceSelection <- seq(sliceSelectionRange[1], sliceSelectionRange[2],by=1)
+
+
+frameInterval <- 30 #override frame inteval for trial experiments
+
+
+
+
+
+
+
+
+
+#define designations for parameters
+ChannelLabels <- tibble(Channel = c("red", "green", "blue"), ChannelLabel = c("phRodored", "miRNA", "DAPI"))
+ParameterLabels <- tibble(Parameter = c("red", "redInverse", "prop"), Region = c("Endosomal", "Non-Endosomal", "Endosomal Proportion"))
+resultsExcelFile <- paste(treatment, "_Kinetics.xlsx", sep = "")
+resultsGraphFile <- paste(treatment, "_Kinetics.tiff", sep = "")
 
 
 
 
 
 #request user to select a source folder 
-working_directory <- choose.dir(default = getwd(), caption = "Select Source folder")
-DataToExport  <- processUptakeData(working_directory)
+DataToExport  <- processUptakeData(imageDataFolder)
+
+DataToExport <- DataToExport %>% #filter for selected slices
+  filter(Slice %in% sliceSelection)
+
 Graphs <- exportResults(DataToExport, timeOffset, frameInterval, resultsExcelFile)
 
-tiff(resultsGraphFile, width = 1300, height = 750, res=100)
+tiff(resultsGraphFile, width = 1500, height = 1500, res=100)
 annotate_figure(Graphs, top = text_grob(treatment, face = "bold", size = 14))
 garbage <- dev.off()
-
-
