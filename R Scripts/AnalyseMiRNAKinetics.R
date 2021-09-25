@@ -62,24 +62,22 @@ processKineticsData <- function(combinedData, timeOffset, frameInterval, sliceSe
     file.remove(resultsExcelFile)
   } 
   
-  combinedDataPerSlice <- combinedData %>% 
+  combinedDataPerSlice <- DataToProcess %>% 
     filter(Slice %in% sliceSelection) %>%
-    select(-Area) %>%
-    filter(!is.na(Mean)) %>% #slight edit here to handle NAs
-    pivot_wider(names_from = Parameter, values_from = Mean) %>% 
-    mutate(prop = red/(red + redInverse)) %>% #compute other parameters
-    pivot_longer(red:prop, names_to = "Parameter", values_to = "Value") %>%
+    pivot_wider(names_from = Parameter, values_from = c(Mean, Area)) %>% 
+    mutate(Mean_prop = Mean_red/(Mean_red + Mean_redInverse), Area_prop = Area_red/(Area_red + Area_redInverse)) %>% #compute other parameters
+    select(-Area_red, -Area_redInverse) %>%
+    pivot_longer(Mean_red:Area_prop, names_to = "Parameter", values_to = "Value") %>%
     mutate(RecordingTime.h = ((FrameID-1)*frameInterval)/60) %>%
     mutate(AbsoluteTime.h = RecordingTime.h + (timeOffset/60)) %>%
     group_by(Filename, Channel, Parameter, Slice) %>%
     mutate(NormalisedValue = (Value/first(Value))) %>%
-    ungroup()
-  
-  combinedDataPerSlice <- combinedDataPerSlice %>%
+    ungroup() %>%
     rename(Mean = Value) %>%
     rename(NormalisedMean = NormalisedValue)
   combinedDataPerSlice <- left_join(combinedDataPerSlice, ParameterLabels, by = "Parameter")
   combinedDataPerSlice <- left_join(combinedDataPerSlice, ChannelLabels, by = "Channel")
+  
   
   combinedDataPerFrame <- combinedDataPerSlice %>%
     select(-c(Parameter, Channel, RecordingTime.h)) %>%
@@ -95,6 +93,45 @@ processKineticsData <- function(combinedData, timeOffset, frameInterval, sliceSe
 
 
 
+plotCorrelationGraphs <- function(dataForPlots, channelOfInterest, DurationOfInterest, errorType, resultsGraphFile) {
+  correlationPlots <- list()
+  dataForPlots <- dataForPlots %>%
+    filter(AbsoluteTime.h <= DurationOfInterest) #plot only 4h results
+  
+  a <- dataForPlots %>% #plot graph of area vs time
+    filter(Region =="Endosomal/Non-Endosomal Area Proportion") %>%
+    filter(ChannelLabel == channelOfInterest) %>%
+    ggline(x="AbsoluteTime.h", y = "Mean", numeric.x.axis = TRUE, xticks.by = 1, add = errorType, ylab = "Endosomal Area Proportion")
+  correlationPlots <- append(correlationPlots, list(a))
+  
+  b <- dataForPlots %>% #plot graph of normalised fluorescence intensity of miRNA and phrodoRed vs time
+    filter(Region %in% c("Endosomal")) %>%
+    filter(ChannelLabel %in% c("miRNA", "phRodored")) %>%
+    ggline(x= "AbsoluteTime.h", y = "NormalisedMean", color = "Channel",  palette =  c("#00FF00", "#FF0000"),  numeric.x.axis = TRUE, xticks.by = 1, add = errorType, ylab = "Endosomal Fluoresence Intensity")
+  correlationPlots <- append(correlationPlots, list(b))
+  
+  
+  combinedDataForCorrelation <- dataForPlots %>%
+    select(Filename:Mean, ChannelLabel) %>%
+    filter(Parameter %in% c("Mean_red", "Area_prop")) %>%
+    pivot_wider(names_from = Parameter, values_from = Mean) %>%
+    group_by(Filename, FrameID, ChannelLabel) %>%
+    summarise(Mean_red = mean(Mean_red), Area_prop = mean(Area_prop))
+  
+  c <- combinedDataForCorrelation %>% #plot correlation scatter plot 
+    filter(ChannelLabel==channelOfInterest) %>%
+    ggscatter(x="Area_prop", y="Mean_red", add = "reg.line", add.params = list(color = "blue", fill = "lightgray"), conf.int = TRUE, cor.coef = TRUE, cor.coeff.args = list(method = "pearson", aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), label.x = 0.3, label.sep = "\n"), title = "miRNA Scatter Plot", ylab = "miRNA Fluorescence Intensity", xlab = "Endosomal/Non-Endosomal Area Proportion")
+  correlationPlots <- append(correlationPlots, list(c))
+  
+  d <- combinedDataForCorrelation %>% #plot correlation scatter plot 
+    filter(ChannelLabel=="phRodored") %>%
+    ggscatter(x="Area_prop", y="Mean_red", add = "reg.line", add.params = list(color = "blue", fill = "lightgray"), conf.int = TRUE, cor.coef = TRUE, cor.coeff.args = list(method = "pearson", aes(label = paste(..rr.label.., ..p.label.., sep = "~`,`~")), label.x = 0.3, label.sep = "\n"), title = "phRodoRed Scatter Plot", ylab = "phRodored Fluorescence Intensity", xlab = "Endosomal/Non-Endosomal Area Proportion")
+  correlationPlots <- append(correlationPlots, list(d))
+  
+  correlationPlots <- ggarrange(plotlist=correlationPlots, nrow = 4)
+  correlationPlots <- annotate_figure(correlationPlots, top = text_grob("Correlation Analysis", face = "bold", size = 14))
+  ggexport(correlationPlots, filename = resultsGraphFile, width = 1500, height = 3000, res=100)
+}
 
 
 
@@ -123,10 +160,10 @@ sliceSelection <- seq(sliceSelectionRange[1], sliceSelectionRange[2],by=1)
 
 #define designations for parameters
 ChannelLabels <- tibble(Channel = c("red", "green", "blue"), ChannelLabel = c("phRodored", "miRNA", "DAPI"))
-ParameterLabels <- tibble(Parameter = c("red", "redInverse", "prop"), Region = c("Endosomal", "Non-Endosomal", "Endosomal Proportion"))
+ParameterLabels <- tibble(Parameter = c("Mean_red", "Mean_redInverse", "Mean_prop", "Area_prop"), Region = c("Endosomal", "Non-Endosomal", "Endosomal/Non-Endosomal miRNA Proportion", "Endosomal/Non-Endosomal Area Proportion"))
 resultsExcelFile <- paste(treatment, "_Kinetics.xlsx", sep = "")
 resultsGraphFile <- paste(treatment, "_Kinetics.tiff", sep = "")
-
+correlationGraphFile <- paste(treatment, "_Correlation.tiff", sep = "")
 
 
 
@@ -137,6 +174,7 @@ DataForPlots <- processKineticsData(DataToProcess, timeOffset, frameInterval, sl
 
 #plot graphs
 plotMiRKineticsGraphs(DataForPlots, DurationOfInterest = 4, errorType = "mean_sd", treatment, resultsGraphFile)
+plotCorrelationGraphs(DataForPlots, channelOfInterest = "miRNA", DurationOfInterest = 4, errorType = "mean_sd", correlationGraphFile)
 
 #update meta results sheet
 ParameterAnalyzed <- "MiRKinetics"
