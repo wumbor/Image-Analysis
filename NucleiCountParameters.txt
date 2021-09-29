@@ -2,7 +2,9 @@
 IJMacrosDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/ImageJ Macros/"
 RScriptsDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/"
 
-NucleiThreshold = 35
-countNuclei = FALSE
-saveImages = FALSE
-plotData = TRUE
+NucleiThreshold = 15
+optimiseThreshold? = TRUE
+countNuclei? = TRUE
+saveImages? = TRUE
+plotData? = TRUE
+inVivo? = FALSE

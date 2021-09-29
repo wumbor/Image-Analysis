@@ -3,7 +3,7 @@ IJMacrosDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/ImageJ Mac
 RScriptsDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/"
 
 channelOfInterest = C2
-fluoParameter = MAP2
+fluoParameter = Neurofil
 measureFluoresence? = TRUE
 plotData? = TRUE
 
