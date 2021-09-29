@@ -172,7 +172,6 @@ function MeasureInROIs(ChannelName, ROIstoMeasure) {
 function CreateROIs(ChannelName, ChannelColor) { 
 	selectWindow(ChannelName); //select the channel to create masked image
 	run("Convert to Mask", "method=Otsu background=Dark calculate black");
-	run("Fill Holes", "stack");
 	
 	ROIs = newArray;	
 	for (i = 1; i <= nSlices; i++) { //loop over the slices, create a selection and ROI from each slice
@@ -184,45 +183,3 @@ function CreateROIs(ChannelName, ChannelColor) {
 	return ROIs;
 }
 
-
-
-
-
-
-/*
-//Find the indices of corresponding slice ROIs
-function CreateCompositeROIs(ListOfROIs, ChannelsCount) { 
-	//middleindex = ListOfROIs.length/2;
-	CompositeROIs = newArray;
-	CompositeROIIndices = newArray;
-	ROIsPerChannel = (ListOfROIs.length/ChannelsCount);
-	C1ROIsIndex = 0;
-	C3ROIsIndex = 0 + ROIsPerChannel;
-
-	//select and combine corresponding ROIs
-	for (i = 1; i < ROIsPerChannel; i++) {
-		roiManager("Select", newArray(C1ROIsIndex, C3ROIsIndex));
-		roiManager("Combine");
-		CompositeROIs = Array.concat(CompositeROIs, "Composite" +"-"+ i);
-		CompositeROIIndices = Array.concat(CompositeROIIndices, C1ROIsIndex); 
-
-		C1ROIsIndex = C1ROIsIndex + 1;
-		C3ROIsIndex = C3ROIsIndex + 1;
-	}
-	//Array.print(CompositeROIIndices);
-	//print("");
-	//print("");
-	//Array.print(CompositeROIs);
-}
-
-
-
-/*
-roiManager("Select", newArray(0,1));
-roiManager("Combine");
-roiManager("Select", 1);
-roiManager("Select", 0);
-roiManager("Select", 1);
-roiManager("Select", 0);
-roiManager("Measure");
-*/
