@@ -1,169 +1,132 @@
-#load required libraries
-library(tidyverse)
-library("xlsx")
-library(ggpubr)
-library(ggsci)
+# This script analyses data from the CountNucleiMaster macro to plot graphs cell counts
+#Written by Victor Kumbol, January 2021
+#Modifed by Victor Kumbol, October 2021
 
 #prepare workspace
 myarg <- commandArgs()
-working_directory <- as.character(myarg[6])
-setwd(working_directory)  #set working dir based on command line arguments
-main_project_folder <- dirname(dirname(getwd()))
+workingDirectory <- as.character(myarg[6])
+setwd(workingDirectory)  #set working dir based on command line arguments
 
-#TESTING SECTION
-# working_directory <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/R Scripts/2021_01_2_VK"
-# setwd(working_directory)
+#load required libraries
+library(tidyverse)
+library(xlsx)
+library(ggpubr)
+library(ggplot2)
+library(ggrepel)
 
+source("C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/GenericFunctions.R", chdir = TRUE)
 
-#define key global variables
-experiment_id <- str_split(working_directory, "/", simplify = TRUE)
-experiment_id <- experiment_id[length(experiment_id)]
-
-#Specify input files
-microscopy_sequence_file <- paste(experiment_id, "_Image_Capture.txt", sep = "")
-microscopy_data_file <- paste(experiment_id, "_Nuclei_Count.csv", sep = "")
-analysis_log_file <- paste(experiment_id, "_AnalysisLog.txt", sep = "")
-
-#Specify output files
-results_excel_file <- paste(experiment_id, "_Nuclei_Count.xlsx", sep = "")
-results_graph_file <- paste(experiment_id, "_Nuclei_Count.tiff", sep = "")
-meta_results_file <- paste(main_project_folder, "Pooled_Data.csv", sep = "/")
-
-#Specify header line in microscopy_sequence_file
-img_sequence_header_line <- (grep("Condition", read_lines(microscopy_sequence_file, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1
-
-
-
+####################################################################################################
 #define functions
 normalize <- function(value, maxi) {
   normalized_value = (value/maxi)*100
   return(normalized_value)
 }
 
-
-parseStandardName <- function(input_string) {
-  codeNameVector <-  c("miR#4", "miR#5", "miR#13", "miR#19", "miR#27", "TL8")
-  standardNameVector <-  c("Control oligo", "miR-124-5p", "miR-9-5p", "miR-501-3p", "miR-92a-1-5p", "TL8-506")
-  codeDoseVector <-  c("\\(L\\)", "\\(LM\\)", "\\(M\\)", "\\(H\\)",  "\\(XH\\)")
-  standardDoseVector <- c("(1)", "(3)", "(5)", "(10)",  "(20)")
-
-  output <- input_string
-  # output <- str_replace(output, "miR#5", "miR-124-5p")
-  i = 1
-  for(i in 1:length(codeNameVector)){
-    output <- str_replace(output, codeNameVector[i], standardNameVector[i])
-  }
-
-  i = 1
-  for(i in 1:length(codeDoseVector)){
-    output <- str_replace(output, codeDoseVector[i], standardDoseVector[i])
-  }
-  return(output)
+#function to test for outliers
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
 }
 
-TreatmentLevels <- c("Null", "Control oligo", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8-506")
 
-
-#read in data from files
-image_sequence <- read.csv(file = microscopy_sequence_file, colClasses = c(rep("numeric", 2), rep("character", 2)), header = TRUE, sep = ",", skip = img_sequence_header_line)
-image_data <- read.csv(file = microscopy_data_file, colClasses = c("character", rep("numeric", 4)), header = TRUE, sep = ",")
-analysis_parameters <- read.csv(file = analysis_log_file, sep = ",", header = TRUE)
-
-
-
-#process image sequence data
-image_sequence <- image_sequence %>%
-  rename(Original_Filename = Filename) %>%
-  arrange(Original_Filename)
-
-#process image count data
-image_data <- image_data %>%
-  rename(Processed_Filename = Slice) %>%
-  arrange(Processed_Filename) %>%
-  select(-Mode, -Median, -Mean)
-
-#merge image sequence and image count tables and rearrange data to preferred presentation order
-combined_data <- bind_cols(image_sequence, image_data) %>%
-  separate(Condition, sep = "_", into = c("Treatment", "Field")) %>%
-  mutate(Field = as.numeric(Field)) %>%
-  mutate(Treatment = parseStandardName(trimws(Treatment)))
-combined_data$Treatment <- factor(combined_data$Treatment, levels = TreatmentLevels)
-
-
-
-#summarise the mean and median for every coverslip
-combinedDataPerCoverslip <- combined_data %>%
-  group_by(Treatment, Coverslip) %>%
-  summarise(Mean = mean(Count), Median = median(Count))
-
-
-#calculate mean and median of null group
-null_group_stats <- combinedDataPerCoverslip %>%
-  filter(Treatment=="Null") %>%
-  summarise(AvgMean = mean(Mean), AvgMedian = mean(Median))
-
-
-#Normalize all counts to null group stats
-combinedDataPerCoverslip <- combinedDataPerCoverslip %>%
-  mutate(NormalizedMean = normalize(Mean, null_group_stats$AvgMean), NormalizedMedian = normalize(Median, null_group_stats$AvgMedian))
-
-
-summaryReport <- combinedDataPerCoverslip %>%
-  group_by(Treatment) %>%
-  summarise(NormalizedMean = mean(NormalizedMean), NormalizedMedian = mean(NormalizedMedian))
-
-
-#save the results to an excel spreadsheet
-if (file.access(results_excel_file)){ #overwrite any existing file
-  write.xlsx(combined_data, file = results_excel_file, sheetName = "Raw Data", col.names = TRUE, row.names = FALSE, append = TRUE)
-} else {
-  write.xlsx(combined_data, file = results_excel_file, sheetName = "Raw Data", col.names = TRUE, row.names = FALSE, append = FALSE)
-}
-write.xlsx(summaryReport, file = results_excel_file, sheetName = "Nuclei Count Summary", col.names = TRUE, append = TRUE)
-write.xlsx(analysis_parameters, file = results_excel_file, sheetName = "Analysis Parameters", col.names = FALSE, row.names = FALSE, append = TRUE)
-
-
-#save graph of results
-scaled_width = 100*length(unique(summaryReport$Treatment))
-tiff(results_graph_file, width=scaled_width, height=800, res=100)
-
-plottheme <- theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
-
-mean_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMean", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalised Mean") + plottheme
-
-median_plot <- ggbarplot(combinedDataPerCoverslip, x = "Treatment", y = "NormalizedMedian", add = c("mean", "jitter"), size = 1, ylab = "Normalised NeuN+ Cell Count (%)", lab.hjust = 0.5, title = "Normalised Median") + plottheme
-
-combined_plot <- ggarrange(mean_plot, median_plot, ncol = 2, common.legend = TRUE, legend = "bottom")
-
-annotate_figure(combined_plot, top = text_grob(experiment_id, face = "bold", size = 14))
-garbage <- dev.off()
-
-
-
-# Save key experiment details (Experiment#, Parameter Analyzed, Path to Results file) to pooled data sheet
-meta_result <- data.frame("ExperimentID" = experiment_id, "Parameter.Analyzed" = "NeuNNucleiCount", "Result.File.Path" = paste (getwd(), results_excel_file, sep = "/"), stringsAsFactors = FALSE)
-
-
-if (file.exists(meta_results_file)){ #append to an existing file, if any
-  write_csv(meta_result, meta_results_file, na = "NA", append = TRUE, col_names = FALSE)
-} else {
-  write_csv(meta_result, meta_results_file, na = "NA", append = TRUE, col_names = TRUE)
+importCountData <- function(microscopyDataFile, microscopySequenceFile) {
+  
+  #read in data from files
+  imageSequenceHeaderLine <- (grep("Condition", read_lines(microscopySequenceFile, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1 #Specify header line 
+  imageSequence <- read.csv(file = microscopySequenceFile, colClasses = c(rep("numeric", 2), rep("character", 2)), header = TRUE, sep = ",", skip = imageSequenceHeaderLine)
+  imageData <- read.csv(file = microscopyDataFile, colClasses = c("character", rep("numeric", 4)), header = TRUE, sep = ",")
+  
+  imageSequence <- imageSequence %>% #process image sequence data
+    rename(Original_Filename = Filename) %>%
+    arrange(Original_Filename)
+  
+  imageData <- imageData %>%  #process image count data
+    rename(Processed_Filename = Slice) %>%
+    arrange(Processed_Filename) %>%
+    select(Processed_Filename, Count)
+  
+  importedData <- bind_cols(imageSequence, imageData) %>% #merge sequence and count tables 
+    separate(Condition, sep = "_", into = c("Treatment", "Field")) %>%
+    mutate(Field = as.numeric(Field)) %>%
+    mutate(Treatment = parseStandardName(trimws(Treatment)))
+  importedData$Treatment <- factor(importedData$Treatment, levels = TreatmentLevels)
+  return(importedData)
 }
 
 
 
-#Detecct and report suspected outliers in a separate sheet
-dt <- combined_data
-var <- combined_data$Count
-var_name <- eval(substitute(var),eval(dt))
-outlier <- boxplot.stats(var_name)$out
 
-suspected_outliers <- combined_data %>%
-  filter(Count %in% outlier)
-
-if(length(outlier)){
-  write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
-} else {
-  suspected_outliers <- data.frame("ExperimentID" = experiment_id, "Report" = "NO SUSPECTED OUTLIERS DETECTED", stringsAsFactors = FALSE)
-  write.xlsx(suspected_outliers, file = results_excel_file, sheetName = "Suspected Outliers", col.names = TRUE, row.names = FALSE, append = TRUE)
+processCountData <- function(combinedData, analysisLogFile, resultsExcelFile) {
+  if (file.exists(resultsExcelFile)){   #overwrite any existing results file
+    file.remove(resultsExcelFile)
+  } 
+  
+  combinedData <- combinedData %>% #report outliers
+    mutate(Suspected.Outliers=Processed_Filename) %>% 
+    group_by(Treatment) %>% 
+    mutate(is_outlier=ifelse(is_outlier(Count), Count, as.numeric(NA)))
+  combinedData$Suspected.Outliers[which(is.na(combinedData$is_outlier))] <- as.numeric(NA)
+  combinedData <- combinedData %>%
+    select(-is_outlier)
+  
+  combinedDataPerCoverslip <- combinedData %>%   #summarise the mean and median for every coverslip
+    group_by(Treatment, Coverslip) %>%
+    summarise(Mean = mean(Count), Median = median(Count))
+  
+  nullGroupStats <- combinedDataPerCoverslip %>% #calculate mean and median of null group
+    filter(Treatment=="Null") %>%
+    summarise(AvgMean = mean(Mean), AvgMedian = mean(Median))
+  
+  combinedDataPerCoverslip <- combinedDataPerCoverslip %>% #Normalize all counts to null group stats
+    mutate(NormalizedMean = normalize(Mean, nullGroupStats$AvgMean), NormalizedMedian = normalize(Median, nullGroupStats$AvgMedian))
+  
+  summaryReport <- combinedDataPerCoverslip %>% #Generate summary results
+    group_by(Treatment) %>%
+    summarise(NormalizedMean = mean(NormalizedMean), NormalizedMedian = mean(NormalizedMedian))
+  
+  
+  analysisParameters <- read.csv(file = analysisLogFile, sep = ",", header = TRUE) #read data from analysis logfile
+  
+  #save the results to an excel spreadsheet
+  write.xlsx(as.data.frame(combinedData), file = resultsExcelFile, sheetName = "Raw Data", col.names = TRUE, row.names = FALSE, showNA = FALSE)
+  write.xlsx(as.data.frame(summaryReport), file = resultsExcelFile, sheetName = "Nuclei Count Summary", col.names = TRUE, row.names = FALSE, append = TRUE, showNA = FALSE)
+  write.xlsx(as.data.frame(analysisParameters), file = resultsExcelFile, sheetName = "Analysis Parameters", col.names = FALSE, row.names = FALSE, append = TRUE, showNA = FALSE)
+  
+  return(combinedData)
 }
+
+
+
+plotCountGraphs <- function(DataToPlot, resultsGraphFile) {
+  scaledWidth = 100*length(unique(DataToPlot$Treatment)) #scale width to accomodate treatments
+  
+  p <- ggplot(DataToPlot, aes(y=Count, x=Treatment)) + geom_boxplot() +  stat_summary(fun=mean, geom="point", shape=20, size=5, color="red", fill="red")+ geom_text_repel(aes(label = Suspected.Outliers), na.rm = TRUE, show.legend = FALSE) + theme_pubr() + plottheme
+  
+  Graph <- annotate_figure(p, top = text_grob(experimentId, face = "bold", size = 14))
+  ggexport(Graph, filename = resultsGraphFile, width = scaledWidth, height = 750, res=100)
+}
+
+####################################################################################################
+
+#define key global variables
+experimentId <- str_split(workingDirectory, "/", simplify = TRUE)
+experimentId <- experimentId[length(experimentId)]
+
+#Specify input files
+microscopySequenceFile <- paste(experimentId, "_Image_Capture.txt", sep = "")
+microscopyDataFile <- paste(experimentId, "_Nuclei_Count.csv", sep = "")
+analysisLogFile <- paste(experimentId, "_AnalysisLog.txt", sep = "")
+
+#Specify output files
+resultsExcelFile <- paste(experimentId, "_Nuclei_Count.xlsx", sep = "")
+resultsGraphFile <- paste(experimentId, "_Nuclei_Count.tiff", sep = "")
+
+#Run Analysis
+DataToProcess <- importCountData(microscopyDataFile, microscopySequenceFile) #import data
+DataToPlot <- processCountData(DataToProcess, analysisLogFile, resultsExcelFile) #process data
+plotCountGraphs(DataToPlot, resultsGraphFile) #plot graphs
+
+
+#update meta results sheet
+updateMetaResults(experimentId, ParameterAnalyzed = "NeuNNucleiCount", resultsExcelFile, metaResultsFile = metaResultFilemASSAY) #update metaresults sheet
+
