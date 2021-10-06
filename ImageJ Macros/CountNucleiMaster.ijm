@@ -140,6 +140,15 @@ if (plotData){
 
 garbage = File.delete(analysisLogFile); //delete the analysis log file
 garbage = File.delete(nucleiCountResultsFile); //delete the preliminary nuclei count results file
+close("Results");
+close("*_Nuclei_Count.csv");
+
+RplotsFile = workingDir + "Rplots.pdf";
+if (File.exists(RplotsFile)) {
+	garbage = File.delete(RplotsFile); // delete the annoying Rplots file
+} 
+
+
 
 
 

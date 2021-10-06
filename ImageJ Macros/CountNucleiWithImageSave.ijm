@@ -81,34 +81,45 @@ function countNuclei(outputDir, title, name) {
 	run("Split Channels");
 	selectWindow("C1-" + title);
 	run("8-bit");
-	saveAs("tiff", outputDir + name + "_red");
-	original_image = name + "_red.tif";
 	close("\\Others");
+	run("Duplicate...", "title=original_image");
+	selectWindow("original_image");
+	run("Grays");
+	run("Apply LUT");
+
 	
 	//Process image
+	selectWindow("C1-" + title);
 	setThreshold(nucleiThreshold, 255);
 	setOption("BlackBackground", true);
 	run("Convert to Mask");
 	run("Fill Holes");
 	run("Convert to Mask");
 	run("Watershed");
-	
-	
+
+	/* ORIGINAL SCRIPT
+	run("Mean...", "radius=5");
+	run("Subtract Background...", "rolling=50");
+	setThreshold(nucleiThreshold, 255);
+	setOption("BlackBackground", true);
+	run("Convert to Mask");
+	run("Fill Holes");
+	run("Convert to Mask");
+	run("Watershed");
+	*/
+
+		
 	//Analyze image for nuclei
 	run("Analyze Particles...", "size=10-Infinity show=Outlines display exclude summarize");
 	
 	//Save masked image with counted cells
-	
-	selectWindow("Drawing of " + name + "_red.tif");
-	count_mask_image = "Drawing of " + name + "_red.tif";
+	selectWindow("Drawing of C1-" + title);
+	rename("count_mask_image");
 	run("Magenta");
 	run("Invert LUT");
-	close("\\Others");
-	open(outputDir + original_image);
-	run("8-bit");
 	run("Merge Channels...", "c4=&original_image c6=&count_mask_image");
 	saveAs("tiff", outputDir + name + "_nuclei_count_mask");
-
+	close("*");
 }
 
 
