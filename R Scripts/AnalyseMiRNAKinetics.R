@@ -65,9 +65,9 @@ processKineticsData <- function(combinedData, timeOffset, frameInterval, sliceSe
   combinedDataPerSlice <- DataToProcess %>% 
     filter(Slice %in% sliceSelection) %>%
     pivot_wider(names_from = Parameter, values_from = c(Mean, Area)) %>% 
-    mutate(Mean_prop = Mean_red/(Mean_red + Mean_redInverse), Area_prop = Area_red/(Area_red + Area_redInverse)) %>% #compute other parameters
-    select(-Area_red, -Area_redInverse) %>%
-    pivot_longer(Mean_red:Area_prop, names_to = "Parameter", values_to = "Value") %>%
+    #mutate(Mean_prop = Mean_red/(Mean_red + Mean_redInverse), Area_prop = Area_red/(Area_red + Area_redInverse)) %>% #compute other parameters
+    #select(-Area_red, -Area_redInverse) %>%
+    pivot_longer(Mean_red:Area_red, names_to = "Parameter", values_to = "Value") %>%
     mutate(RecordingTime.h = ((FrameID-1)*frameInterval)/60) %>%
     mutate(AbsoluteTime.h = RecordingTime.h + (timeOffset/60)) %>%
     group_by(Filename, Channel, Parameter, Slice) %>%
@@ -86,8 +86,41 @@ processKineticsData <- function(combinedData, timeOffset, frameInterval, sliceSe
     summarise(Mean = mean(Mean), NormalisedMean = mean(NormalisedMean))
   
   write.xlsx(as.data.frame(combinedDataPerFrame), file = resultsExcelFile, sheetName = "combinedDataPerFrame", col.names = TRUE, row.names = FALSE, append = TRUE)
- 
+  
   return(combinedDataPerSlice)
+}
+
+
+
+plotMiRKineticsGraphs <- function(dataForPlots, DurationOfInterest, errorType, treatment, resultsGraphFile) {
+  kineticsPlots <- list()
+  dataForPlots <- dataForPlots %>%
+    filter(AbsoluteTime.h <= DurationOfInterest) #plot only 4h results
+  
+  #Plot graph of Endosomal area
+  p1 <- dataForPlots %>%
+    filter(Region %in% c("Endosomal Area")) %>%
+    filter(ChannelLabel%in% c("miRNA", "DAPI", "phRodored")) %>%
+    ggline(x= "AbsoluteTime.h", y = "Mean", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Mean Endosomal Area", add = errorType)
+  kineticsPlots <- append(kineticsPlots, list(p1))
+  
+  
+  
+  #Plot graph of Mean Fluorescence with SD
+  p2 <- dataForPlots %>%
+    filter(Region=="Endosomal") %>%
+    ggline(x= "AbsoluteTime.h", y = "Mean", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Mean Fluorescence Intensity", add = errorType)
+  kineticsPlots <- append(kineticsPlots, list(p2))
+  
+  #Plot graph of Normalised Mean Fluorescence with SE
+  p3 <- dataForPlots %>%
+    filter(Region=="Endosomal") %>%
+    ggline(x= "AbsoluteTime.h", y = "NormalisedMean", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Normalised Fluorescence Intensity", add = errorType)
+  kineticsPlots <- append(kineticsPlots, list(p3))
+  
+  kineticsPlots <- ggarrange(plotlist=kineticsPlots, nrow = 3)
+  Graphs <- annotate_figure(kineticsPlots, top = text_grob(treatment, face = "bold", size = 14))
+  ggexport(Graphs, filename = resultsGraphFile, width = 1500, height = 2250, res=100)
 }
 
 
@@ -160,7 +193,7 @@ sliceSelection <- seq(sliceSelectionRange[1], sliceSelectionRange[2],by=1)
 
 #define designations for parameters
 ChannelLabels <- tibble(Channel = c("red", "green", "blue"), ChannelLabel = c("phRodored", "miRNA", "DAPI"))
-ParameterLabels <- tibble(Parameter = c("Mean_red", "Mean_redInverse", "Mean_prop", "Area_prop"), Region = c("Endosomal", "Non-Endosomal", "Endosomal/Non-Endosomal miRNA Proportion", "Endosomal/Non-Endosomal Area Proportion"))
+ParameterLabels <- tibble(Parameter = c("Mean_red", "Mean_redInverse", "Mean_prop", "Area_prop", "Area_red"), Region = c("Endosomal", "Non-Endosomal", "Endosomal/Non-Endosomal miRNA Proportion", "Endosomal/Non-Endosomal Area Proportion", "Endosomal Area"))
 resultsExcelFile <- paste(treatment, "_Kinetics.xlsx", sep = "")
 resultsGraphFile <- paste(treatment, "_Kinetics.tiff", sep = "")
 correlationGraphFile <- paste(treatment, "_Correlation.tiff", sep = "")
@@ -170,14 +203,25 @@ correlationGraphFile <- paste(treatment, "_Correlation.tiff", sep = "")
 
 #run data analysis
 DataToProcess  <- importKineticsData (imageDataFolder)
+
+DataToProcess <- DataToProcess %>% #use data for DAPI exclusive regions
+  filter(Parameter=="blue") %>%
+  mutate(Parameter = str_replace(Parameter, "blue", "red"))
+
+# DataToProcess <- DataToProcess %>% #use data for DAPI inclusive regions
+#   filter(Parameter=="red")
+
+
 DataForPlots <- processKineticsData(DataToProcess, timeOffset, frameInterval, sliceSelection, resultsExcelFile)
 
 #plot graphs
-plotMiRKineticsGraphs(DataForPlots, DurationOfInterest = 4, errorType = "mean_sd", treatment, resultsGraphFile)
-plotCorrelationGraphs(DataForPlots, channelOfInterest = "miRNA", DurationOfInterest = 4, errorType = "mean_sd", correlationGraphFile)
+plotMiRKineticsGraphs(DataForPlots, DurationOfInterest = 4, errorType = "mean", treatment, resultsGraphFile)
+# plotCorrelationGraphs(DataForPlots, channelOfInterest = "miRNA", DurationOfInterest = 4, errorType = "mean", correlationGraphFile)
 
 #update meta results sheet
 ParameterAnalyzed <- "MiRKinetics"
 metaResultsFile <- metaResultFilemMORPH
 updateMetaResults(experimentId, ParameterAnalyzed, resultsExcelFile, metaResultsFile)
+
+
 
