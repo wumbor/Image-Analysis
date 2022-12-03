@@ -59,10 +59,10 @@ combined_data <- bind_cols(image_sequence, threshold_data) %>%
 #calculate stats of null group
 null_group_stats <- combined_data %>%
   filter(str_detect(Treatment, "Null")) %>%
-  summarise(avg=mean(Lower.Threshold), med=median(Lower.Threshold))
+  summarise(avg=mean(Lower.Threshold), med=median(Lower.Threshold), min=min(Lower.Threshold))
 
 #cat("CountThreshold = ", as.integer(null_group_stats$avg), "\n")
-cat(as.integer(null_group_stats$avg))
+cat(as.integer(null_group_stats$min))
 #cat("Null Group Median = ", as.integer(null_group_stats$med), "\n")
 # cat("Overall Average = ", as.integer(overall_stats$avg), "\n")
 # cat("Overall Median = ", as.integer(overall_stats$med), "\n")

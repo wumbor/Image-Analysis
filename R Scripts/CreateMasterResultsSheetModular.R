@@ -33,7 +33,7 @@ master_data_sheet <- inner_join(pooled_experiment_results, meta_experiment_detai
 
 
 #Use conditionals to select filter parameters i.e. Model system and Parameter analyzed
-model_system <- "NeuronsWT"
+model_system <- "SY5YWT"
 parameter_to_analyze <- "NeuNNucleiCount"
 dose_for_timecourse <- "5"
 
@@ -41,7 +41,7 @@ dose_for_timecourse <- "5"
 
 if (model_system == "NeuronsWT"){
   miR_candidates <- c("miR-124-5p", "miR-92a-1-5p") 
-  day_for_DRC <- "7"
+  day_for_DRC <- "5"
 } else if (model_system == "SY5YWT"){
   miR_candidates <- c("miR-9-5p", "miR-501-3p") 
   day_for_DRC <- "4"

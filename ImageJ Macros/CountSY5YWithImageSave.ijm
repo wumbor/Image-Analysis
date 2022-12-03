@@ -91,17 +91,15 @@ function countNuclei(outputDir, title, name) {
 	
 	//Process image
 	selectWindow("C1-" + title);
-	
-	//run("Mean...", "radius=5");
-	run("Median...", "radius=5");
-	run("Subtract Background...", "rolling=50");
-	//setAutoThreshold("Otsu dark");
+	//run("Median...", "radius=5");
+	//run("Subtract Background...", "rolling=50");
 	setThreshold(nucleiThreshold, 255);
 	setOption("BlackBackground", true);
 	run("Convert to Mask");
-	run("Fill Holes");
-	run("Convert to Mask");
 	run("Watershed");
+	run("Convert to Mask");
+	run("Fill Holes");
+
 	
 
 	

@@ -23,10 +23,20 @@ var saveImages;
 var plotData;
 var optimiseThreshold;
 var inVivo;
+
 lowc = 10; 		//contrast level
 lowi = 76;		//soma intensity
-nwidth = 3;		//width of neurites in pixel
-cleanup = 15;	//particle cleanup value
+nwidth = 5;		//width of neurites in pixel
+cleanup = 20;	//particle cleanup value
+
+
+
+
+
+
+
+
+
 
 	
 //Select source folder and retrieve file list 
@@ -60,7 +70,7 @@ File.close(f);
 
 
 //Load key parameters from file
-nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt"
+nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt";
 loadAllParameters(nucleiCountParametersFile);
 
 
@@ -119,12 +129,27 @@ print("Total Images Analysed: " + counter);
 
 function analyseMorphology(outputDir, title, name, lowc, lowi, nwidth, cleanup) {
 	
-	//showMessage("select image","select the image you want to analyze (16 bit or less)");
-	//open();
 	run("Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
 	rename("original");
 	run("Duplicate...", "title=flatten");
 	run("Subtract Background...", "rolling=50");
+	
+	selectWindow("original");
+	run("Duplicate...", "title=blurred");
+	selectWindow("blurred");
+	run("Gaussian Blur...", "sigma=1");
+	imageCalculator("Subtract create", "original","blurred");
+	rename("sub_blurred");
+	selectWindow("blurred");
+	close();
+	selectWindow("sub_blurred");
+	setAutoThreshold("Otsu dark");
+	getThreshold(lowc, upper);
+	close();
+	selectWindow("flatten");
+	setAutoThreshold("Otsu dark");
+	getThreshold(lowi, upper);
+
 	
 	if(bitDepth()!=16)
 	{
@@ -180,8 +205,8 @@ function analyseMorphology(outputDir, title, name, lowc, lowi, nwidth, cleanup) 
 	run("Duplicate...", "title=open");
 	run("Minimum...", "radius="+nwidth+"");
 	run("Maximum...", "radius="+nwidth+"");
-	//setAutoThreshold("Mean dark");
-	setThreshold(lowc, 65535);
+	setAutoThreshold("Otsu dark");
+	//setThreshold(lowc, 65535);
 	run("Create Mask");
 	rename("soma");
 	run("Analyze Particles...", "size=0-Infinity circularity=0.00-1.00 show=Nothing summarize");
@@ -189,8 +214,8 @@ function analyseMorphology(outputDir, title, name, lowc, lowi, nwidth, cleanup) 
 	////image clean up (remove small particles and debris) and soma removal
 	selectWindow("new_original");
 	run("Duplicate...", "title=neuritesoma");
-	//setAutoThreshold("Mean dark");
-	setThreshold(lowc, 65535);
+	setAutoThreshold("Moments dark");
+	//setThreshold(lowi, 65535);
 	run("Create Mask");
 	rename("neuritesoma_mask");
 	setBackgroundColor(0, 0, 0);

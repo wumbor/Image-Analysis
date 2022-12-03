@@ -50,10 +50,26 @@ function extractChannels(outputDir, title, name) {
 	run("Split Channels");
 	red_channel = "C1-" + title;
 	green_channel = "C2-" + title;
+
+	//process images
+	/*
+	selectWindow(red_channel);
+	//run("Subtract Background...", "rolling=15 sliding");
+	//run("Enhance Contrast", "saturated=0.35");
+	run("Grays");
+	run("Apply LUT");
+
+
+	selectWindow(green_channel);
+	run("Grays");
+	//run("Enhance Contrast", "saturated=0.35");
+	run("Apply LUT");
 	
+	*/
 	//Merge the extracted channels and save as a tiff
 	run("Merge Channels...", "c1=&red_channel c2=&green_channel ignore");
-	run("16-bit");
+	run("8-bit");
+	run("Apply LUT");
 	saveAs("Tiff", outputDir + name + "_morph");
 }
 

@@ -57,7 +57,7 @@ processDistributionData <- function(combinedData, channelMarkers, resultsExcelFi
   
   combinedDataPerWell <- combinedDataPerWell %>%  #normalise fluorescence to untreated wells
     group_by(Region) %>%
-    mutate(Normalized.Fluorescence = MeanFluorescence/MeanFluorescence[(str_which(Treatment, "Null"))]) %>%
+    mutate(Normalized.Fluorescence = MeanFluorescence/MeanFluorescence[(str_which(Treatment, "Alexa"))]) %>%
     ungroup()
   
   write.xlsx(as.data.frame(combinedDataPerWell), file = resultsExcelFile, sheetName = "combinedDataPerWell", col.names = TRUE, row.names = FALSE, append = TRUE) #export results to excel sheet
@@ -108,7 +108,7 @@ resultsGraphFile <- paste(experimentId, "_Distribution.tiff", sep = "")
 
 
 #define designations for channels
-channelMarkers <- tibble(Channel = c("blue", "red", "fred", "composite"), Region = c("DAPI", "Neurofilament", "NeuN","Total"))
+channelMarkers <- tibble(Channel = c("blue", "red", "fred", "composite"), Region = c("DAPI", "pHrodoRed", "NeuN","Total"))
 
 
 #run data analysis

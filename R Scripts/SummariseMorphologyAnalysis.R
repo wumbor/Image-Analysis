@@ -48,8 +48,11 @@ exportResults <- function(combinedData, resultsExcelFile, metaResultsFile) { #Th
   
   write.xlsx(as.data.frame(combinedData), file = resultsExcelFile, sheetName = "Raw Data", col.names = TRUE, row.names = FALSE, append = TRUE)   #Export the raw data 
   
-  combinedDataPerWell <- combinedData %>%   #summarise the mean of key parameters for every coverslip
-    filter(SomaCount!=1) %>% #filter erroneous data i.e. where only one soma was detected
+  combinedDataCleaned <- combinedData %>% #filter out data where the whole image was incorrectly labelled as the neurite
+    filter(!((round(TotalNeuriteArea) >= 37023)|(SomaCount<1))) 
+    
+  
+  combinedDataPerWell <- combinedDataCleaned %>%   #summarise the mean of key parameters for every coverslip
     group_by(Treatment, Coverslip) %>%
     summarise(MeanSomaCount = mean(SomaCount), TotalSomaCount = sum(SomaCount), MeanNeuriteLengthPerNeuron = mean(NeuriteLengthPerNeuron), MeanNeuriteCount = mean(NeuriteCount), MeanNeuriteAreaPerNeuron = mean(NeuriteAreaPerNeuron), MeanAttachmentPoints = mean(AttachmentPointsCount), MeanEndPoints = mean(EndPointsCount))
   
@@ -59,7 +62,7 @@ exportResults <- function(combinedData, resultsExcelFile, metaResultsFile) { #Th
   write.xlsx(as.data.frame(summaryReport), file = resultsExcelFile, sheetName = "Morphology Analysis Summary", col.names = TRUE, row.names = FALSE, append = TRUE)
   
   suspectedOutliers <- combinedData %>% #Detect and report suspected error files in a separate sheet
-    filter(SomaCount==1) 
+    filter((round(TotalNeuriteArea) >= 37023)|(SomaCount<1)) #filter data where the whole image was incorrectly labelled as the neurite
   if(count(suspectedOutliers)<1){
     suspectedOutliers <- data.frame("Report" = "NO FILES EXCLUDED", stringsAsFactors = FALSE)
   } 
@@ -70,18 +73,31 @@ exportResults <- function(combinedData, resultsExcelFile, metaResultsFile) { #Th
   meta_result <- data.frame("ExperimentID" = experimentId, "Parameter.Analyzed" = parameterAnalyzed, "Result.File.Path" = paste (getwd(), resultsExcelFile, sep = "/"), "Analysis Date" = as.character(Sys.time()), stringsAsFactors = FALSE) #Export key experiment details to pooled data sheet
     write_csv(meta_result, metaResultsFile, na = "NA", append = TRUE, col_names = TRUE) #export the meta results
   
-    parametersList  <- combinedDataPerWell %>% #Iterate over the list of analysed parameters and plot graphs
-      ungroup()%>%
-      select(MeanSomaCount:MeanEndPoints, -TotalSomaCount)
-    parametersList <- names(parametersList)
+     
+
+    parametersList <- c("SomaCount", "NeuriteLengthPerNeuron", "NeuriteCount", "NeuriteAreaPerNeuron", "AttachmentPointsCount", "EndPointsCount")
     morphologyPlots <- list()
-    for (i in 1:length(parametersList)) {
-      p<- combinedDataPerWell %>%
+    for (i in 1:length(parametersList)) { #Iterate over the list of analysed parameters and plot graphs
+      p<- combinedDataCleaned %>%
         ggbarplot(x="Treatment", y = parametersList[i], add = c("mean", "jitter"), size = 1) + plottheme
       morphologyPlots <- append(morphologyPlots, list(p))
     }
     morphologyPlots <- ggarrange(plotlist=morphologyPlots)
     return(morphologyPlots)
+    
+    # 
+    # parametersList  <- combinedDataPerWell %>% #Iterate over the list of analysed parameters and plot graphs
+    #   ungroup()%>%
+    #   select(MeanSomaCount:MeanEndPoints, -TotalSomaCount)
+    # parametersList <- names(parametersList)
+    # morphologyPlots <- list()
+    # for (i in 1:length(parametersList)) {
+    #   p<- combinedDataPerWell %>%
+    #     ggbarplot(x="Treatment", y = parametersList[i], add = c("mean", "jitter"), size = 1) + plottheme
+    #   morphologyPlots <- append(morphologyPlots, list(p))
+    # }
+    # morphologyPlots <- ggarrange(plotlist=morphologyPlots)
+    # return(morphologyPlots)
 }
 
 
@@ -110,7 +126,7 @@ parameterAnalyzed <- "MorphologyAnalysis"
 
 #Specify input files
 microscopySequenceFile <- paste(experimentId, "_Image_Capture.txt", sep = "")
-imgSequenceHeaderLine <- (grep("Condition", read_lines(microscopySequenceFile, skip = 0, skip_empty_rows = FALSE, n_max = -1L, na = character()))) - 1 #Specify header line in microscopySequenceFile
+imgSequenceHeaderLine <- (grep("Condition", read_lines(microscopySequenceFile,  n_max = -1L))) - 1 #Specify header line in microscopySequenceFile
 analysisLogFile <- paste(experimentId, "_AnalysisLog.txt", sep = "")
 
 #Specify output files
@@ -133,4 +149,6 @@ Graphs <- exportResults(DataToExport, resultsExcelFile, metaResultsFile)
 tiff(resultsGraphFile, width=1400, height=900, res=100)
 annotate_figure(Graphs, top = text_grob(experimentId, face = "bold", size = 14))
 garbage <- dev.off()
+
+
 

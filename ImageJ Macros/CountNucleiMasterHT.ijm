@@ -17,14 +17,42 @@ var plotData;
 var optimiseThreshold;
 var inVivo;
 
+
+
+
+
+
+experimentListFile = File.openDialog("Select file with experiment names");
+experimentList = File.openAsString(experimentListFile);
+experimentList=split(experimentList,"\n"); 
+
+parentDir = getDirectory("Choose Parent Directory");
+
+for (i = 0; i < experimentList.length; i++) {
+	workingDir = parentDir + experimentList[i] + File.separator;
+	countNucleiMaster(workingDir);	
+}
+
+
+
+
+
+
 //Request working directory from user
-workingDir = getDirectory("Choose Source Folder");
+
+function countNucleiMaster(workingDir) { 
+// function description
+
+
+
+
+//workingDir = getDirectory("Choose Source Folder");
 workingDir = workingDir.replace("\\", "/"); //convert directory path to universal format
 experimentId = split(workingDir, "/"); 
 experimentId = experimentId[(lengthOf(experimentId)-1)]; //Extract the experimentId from the directory path
 sourceImagesDir = workingDir + "TIFFs/"; //define source images directory
-
 print("Processing... " + experimentId);
+
 
 //Load key parameters from file
 nucleiCountParametersFile = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/NucleiCountParameters.txt";
@@ -67,8 +95,6 @@ if (optimiseThreshold) {
 	AutoThreshold = runMacro(OptimiseThresholdMacroPath, OptimiseThresholdArgs);
 	AutoThreshold = parseInt(AutoThreshold);
 	NucleiThreshold = AutoThreshold; //change the NucleiThreshold to the one calculated automatically
-	//the next line is to troubleshoot the Optimise threshold macro
-	print(NucleiThreshold);
 	File.append("AutoThreshold, TRUE", analysisLogFile);
 } else {
 	File.append("AutoThreshold, FALSE", analysisLogFile);
@@ -78,8 +104,7 @@ if (optimiseThreshold) {
 
 
 //Call the appropriate Nuclei Count macro and pass the working directory, nuclei threshold and experimentId as arguments
-//CountWithImgSaveMacroPath = IJMacrosDir + "CountNucleiWithImageSave.ijm"; //specify path to macro for nuclei count with image saving on
-CountWithImgSaveMacroPath = IJMacrosDir + "CountSY5YWithImageSave.ijm"; //specify path to macro for nuclei count with image saving on
+CountWithImgSaveMacroPath = IJMacrosDir + "CountNucleiWithImageSave.ijm"; //specify path to macro for nuclei count with image saving on
 CountWithoutImgSaveMacroPath = IJMacrosDir + "CountNucleiWithoutImageSave.ijm"; //specify path to macro for nuclei count with image saving off
 NucleiCountArgs = workingDir + "&&" + NucleiThreshold + "&&" + experimentId; //combine macro arguments into one string
 
@@ -141,8 +166,8 @@ if (plotData){
 }
 
 
-//garbage = File.delete(analysisLogFile); //delete the analysis log file
-//garbage = File.delete(nucleiCountResultsFile); //delete the preliminary nuclei count results file
+garbage = File.delete(analysisLogFile); //delete the analysis log file
+garbage = File.delete(nucleiCountResultsFile); //delete the preliminary nuclei count results file
 close("Results");
 close("*_Nuclei_Count.csv");
 
@@ -153,7 +178,7 @@ if (File.exists(RplotsFile)) {
 
 
 
-
+}
 
 //Functions used in this macro
 function loadAllParameters(parametersFilePath) { 
@@ -207,3 +232,4 @@ function retrieveParameter(parameterString) {
 		return parameterVal
 	}	
 }
+

@@ -31,7 +31,7 @@ importKineticsData  <- function(imageDataFolder) {
     raw_data <- read.csv(FilesToProcess[i])
     raw_data <- raw_data %>%
       select(Channel, Area, Mean, RawIntDen) %>%
-      separate(Channel, into = c("Channel", "Slice"), sep = "-") %>%
+      separate(Channel, into = c("ROI","Channel", "Slice"), sep = "-") %>%
       mutate(Channel = trimws(Channel))
     summary_data <- raw_data %>%
       select(-RawIntDen)
@@ -44,7 +44,7 @@ importKineticsData  <- function(imageDataFolder) {
   importedData <- bind_rows(importedData, .id="Filename")
   importedData <- importedData %>%
     rename(Parameter = Channel) %>%
-    #mutate(Parameter = str_replace(Parameter, "red inverse", "redInverse")) %>%
+    mutate(Parameter = str_replace(Parameter, "red inverse", "redInverse")) %>%
     separate(Filename, into = c("Filename", "Channel.FrameID"), sep = "_miRKinetics_" ) %>%
     separate(Channel.FrameID, into = c("Channel", "FrameID"), sep = "-") %>%
     separate(FrameID, into = c("FrameID", NA), sep = "\\.") %>%
@@ -64,13 +64,14 @@ processKineticsData <- function(combinedData, timeOffset, frameInterval, sliceSe
   
   combinedDataPerSlice <- DataToProcess %>% 
     filter(Slice %in% sliceSelection) %>%
+    #filter(!is.na(Mean)) %>%
     pivot_wider(names_from = Parameter, values_from = c(Mean, Area)) %>% 
     #mutate(Mean_prop = Mean_red/(Mean_red + Mean_redInverse), Area_prop = Area_red/(Area_red + Area_redInverse)) %>% #compute other parameters
     #select(-Area_red, -Area_redInverse) %>%
     pivot_longer(Mean_red:Area_red, names_to = "Parameter", values_to = "Value") %>%
     mutate(RecordingTime.h = ((FrameID-1)*frameInterval)/60) %>%
     mutate(AbsoluteTime.h = RecordingTime.h + (timeOffset/60)) %>%
-    group_by(Filename, Channel, Parameter, Slice) %>%
+    group_by(Filename, ROI, Channel, Parameter, Slice) %>%
     mutate(NormalisedValue = (Value/first(Value))) %>%
     ungroup() %>%
     rename(Mean = Value) %>%
@@ -82,7 +83,7 @@ processKineticsData <- function(combinedData, timeOffset, frameInterval, sliceSe
   combinedDataPerFrame <- combinedDataPerSlice %>%
     select(-c(Parameter, Channel, RecordingTime.h)) %>%
     filter(Region != "Non-Endosomal") %>%
-    group_by(Filename, AbsoluteTime.h, ChannelLabel, Region) %>%
+    group_by(Filename, ROI, AbsoluteTime.h, ChannelLabel, Region) %>%
     summarise(Mean = mean(Mean), NormalisedMean = mean(NormalisedMean))
   
   write.xlsx(as.data.frame(combinedDataPerFrame), file = resultsExcelFile, sheetName = "combinedDataPerFrame", col.names = TRUE, row.names = FALSE, append = TRUE)
@@ -203,10 +204,11 @@ correlationGraphFile <- paste(treatment, "_Correlation.tiff", sep = "")
 
 #run data analysis
 DataToProcess  <- importKineticsData (imageDataFolder)
-# 
+
 # DataToProcess <- DataToProcess %>% #use data for DAPI exclusive regions
 #   filter(Parameter=="blue") %>%
 #   mutate(Parameter = str_replace(Parameter, "blue", "red"))
+
 
 DataToProcess <- DataToProcess %>% #use data for DAPI inclusive regions
   filter(Parameter=="red")
@@ -214,9 +216,36 @@ DataToProcess <- DataToProcess %>% #use data for DAPI inclusive regions
 
 DataForPlots <- processKineticsData(DataToProcess, timeOffset, frameInterval, sliceSelection, resultsExcelFile)
 
+DataForPlots <- DataForPlots %>%
+  filter(ROI == "Whole Field")  #use data of the whole field
+
 #plot graphs
 plotMiRKineticsGraphs(DataForPlots, DurationOfInterest = 4, errorType = "mean_sd", treatment, resultsGraphFile)
 # plotCorrelationGraphs(DataForPlots, channelOfInterest = "miRNA", DurationOfInterest = 4, errorType = "mean", correlationGraphFile)
 
 #update meta results sheet
 updateMetaResults(experimentId, ParameterAnalyzed = "MiRKinetics", resultsExcelFile, metaResultsFile = metaResultFilemMORPH)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

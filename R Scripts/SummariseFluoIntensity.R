@@ -19,7 +19,7 @@ source("C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/Generic
 ####################################################################################################
 #define functions
 normalize <- function(value, maxi) {
-  normalized_value = (value/maxi)*100
+  normalized_value = (value/maxi)*1
   return(normalized_value)
 }
 
@@ -110,7 +110,7 @@ processFluoData <- function(combinedData, analysisLogFile, resultsExcelFile, max
     summarise(RawMean = mean(NormalizedMean))
   summaryReportUnsaturated <- combinedDataPerCoverslipUnsaturated %>%
     group_by(Treatment) %>%
-    summarise(RawMean = mean(NormalizedMean))
+    summarise(UnsaturatedMean = mean(NormalizedMean))
   combinedSummaryReport <- full_join(summaryReport, summaryReportUnsaturated, by="Treatment")
   
   analysisParameters <- read.csv(file = analysisLogFile, sep = ",", header = TRUE) #read data from analysis logfile
@@ -159,4 +159,4 @@ plotFluoGraphs(DataToPlot, resultsGraphFile) #plot graphs
 
 
 #update meta results sheet
-updateMetaResults(experimentId, ParameterAnalyzed = paste(ParameterAnalyzed, "Fluorescence"), resultsExcelFile, metaResultsFile = metaResultFilemMORPH) #update metaresults sheet
+updateMetaResults(experimentId, ParameterAnalyzed = paste(ParameterAnalyzed, "Fluorescence", sep = ""), resultsExcelFile, metaResultsFile = metaResultFilemMORPH) #update metaresults sheet

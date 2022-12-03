@@ -18,7 +18,7 @@ run("Set Measurements...", "area mean integrated stack display redirect=None dec
 var allChannelColors = newArray("blue", "green", "red", "fred");
 var channelOfInterest = "green";
 var channelsInImage = 4;
-var channelsForComposite = newArray("blue", "red", "fred");
+var channelsForComposite = newArray("red", "fred");
 
 channelOfInterestIndex = getIndexinArray(allChannelColors, channelOfInterest);
 allChannelColors = Array.trim(allChannelColors, channelsInImage);
@@ -187,9 +187,11 @@ function MeasureInCompositeROIs(ChannelName, roiList, compositeROIChannels) {
 		}
 
 		//create composite ROIs and measure
-		roiManager("select", selectionArray);
-		roiManager("combine");
-		roiManager("deselect");
+		if (selectionArray.length>1) {
+			roiManager("select", selectionArray);
+			roiManager("combine");
+			roiManager("deselect");
+		} 
 		roiManager("select", selectionArray[0]);
 		roiManager("measure");
 		compositeROIs = Array.concat(compositeROIs, "composite-" + (i+1));

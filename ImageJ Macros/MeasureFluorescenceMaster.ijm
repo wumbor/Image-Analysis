@@ -45,8 +45,9 @@ print(f, "Analysis Date, " + timeStamp);
 File.close(f);
 
 
-/*
+
 //If optimiseThreshold is toggled on, call the optimise threshold macro 
+optimiseThreshold = false;
 OptimiseThresholdMacroPath = IJMacrosDir + "OptimiseThreshold.ijm"; //specify path to macro 
 OptimiseThresholdArgs = workingDir + "&&" + RScriptsDir + "&&" + IJMacrosDir; //combine required macro arguments into one string
 
@@ -62,18 +63,20 @@ if (optimiseThreshold) {
 
 	AutoThreshold = runMacro(OptimiseThresholdMacroPath, OptimiseThresholdArgs);
 	AutoThreshold = parseInt(AutoThreshold);
-	NucleiThreshold = AutoThreshold; //change the NucleiThreshold to the one calculated automatically
+	Threshold = AutoThreshold; //change the NucleiThreshold to the one calculated automatically
 	File.append("AutoThreshold, TRUE", analysisLogFile);
 } else {
 	File.append("AutoThreshold, FALSE", analysisLogFile);
+	Threshold = 150; 
 }
 
-*/
+
 
 
 //Call the MeasureFluorescence macro and pass the required parameters as arguments
-MeasureFluorescenceMacroPath = IJMacrosDir + "MeasureFluorescence.ijm"; //specify path to macro 
-MeasureFluorescenceArgs = workingDir + "&&" + channelOfInterest + "&&" + experimentId; //combine macro arguments into one string
+//MeasureFluorescenceMacroPath = IJMacrosDir + "MeasureFluorescence.ijm"; //specify path to macro 
+MeasureFluorescenceMacroPath = IJMacrosDir + "MeasureThresholdedFluorescence2.ijm"; //specify path to macro 
+MeasureFluorescenceArgs = workingDir + "&&" + channelOfInterest + "&&" + experimentId+ "&&" + Threshold; //combine macro arguments into one string
 
 
 if (measureFluoresence) { //perform a nuclei count if measureFluoresence is set to true
@@ -115,22 +118,20 @@ if (plotData){
 		}
 		
 		print("\nSummarising and plotting data...");
-		//runMacro(callRScriptMacroPath, CallRScriptArgs);
-		//print("Data Summary and Plot Complete");
-		feedback = runMacro(callRScriptMacroPath, CallRScriptArgs);
-		feedback = toString(feedback);
-		feedback = feedback.trim();
-		if (feedback == "true") { //exit the macro if the nuclei count was not performed
-			print("Data Summary and Plot Complete");
-		} else {
-			exit("Measure Fluorescence Master macro terminated");
-		}	
+		runMacro(callRScriptMacroPath, CallRScriptArgs);
+		print("Data Summary and Plot Complete");
 			
 }
 
 
 garbage = File.delete(analysisLogFile); //delete the analysis log file
 garbage = File.delete(fluoIntensityResultsFile); //delete the preliminary nuclei count results file
+
+close("Results");
+RplotsFile = workingDir + "Rplots.pdf";
+if (File.exists(RplotsFile)) {
+	garbage = File.delete(RplotsFile); // delete the annoying Rplots file
+} 
 
 
 //Functions used in this macro

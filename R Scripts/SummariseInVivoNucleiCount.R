@@ -8,7 +8,8 @@ library(ggsci)
 myarg <- commandArgs()
 working_directory <- as.character(myarg[6])
 setwd(working_directory)  #set working dir based on command line arguments
-
+main_project_folder <- dirname(dirname(dirname(working_directory)))
+#main_project_folder <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mASSAY"
 
 #TESTING SECTION
 # working_directory <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mASSAY/40X Magnification/2021_01_1_VK/2021_01_1A_VK"
@@ -19,7 +20,6 @@ setwd(working_directory)  #set working dir based on command line arguments
 experiment_id <- str_split(working_directory, "/", simplify = TRUE)
 experiment_id <- experiment_id[length(experiment_id)]
 field_area <- 0.037 #area of field in square millimeters at 40X Magnification at Olympus Microscope
-main_project_folder <- dirname(dirname(dirname(getwd())))
 
 #Specify input files
 microscopy_sequence_file <- paste(experiment_id, "_Image_Capture.txt", sep = "")
@@ -29,6 +29,7 @@ analysis_log_file <- paste(experiment_id, "_AnalysisLog.txt", sep = "")
 #Specify output files
 results_excel_file <- paste(experiment_id, "_Nuclei_Count.xlsx", sep = "")
 results_graph_file <- paste(experiment_id, "_Nuclei_Count.tiff", sep = "")
+#meta_results_file <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mASSAY/Pooled_Data.csv"
 meta_results_file <- paste(main_project_folder, "Pooled_Data.csv", sep = "/")
 
 #Specify header line in microscopy_sequence_file

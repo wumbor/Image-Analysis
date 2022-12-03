@@ -57,7 +57,7 @@ CallRScriptArgs = workingDir + "&&" + pathToRScript; //combine macro arguments i
 //runMacro(callRScriptMacroPath, CallRScriptArgs);	
 optimisedThreshold = runMacro(callRScriptMacroPath, CallRScriptArgs);	
 print("Optimum threshold determined");
-garbage = File.delete(ThresholdAnalysisFile); //delete the threshold analysis file
+//garbage = File.delete(ThresholdAnalysisFile); //delete the threshold analysis file
 return optimisedThreshold;
 
 
@@ -66,7 +66,11 @@ return optimisedThreshold;
 
 
 function analyseThreshold(title, name, outputfile) { 
-	
+
+
+
+
+
 	//Extract the red channel from image
 	run("Split Channels");
 	selectWindow("C1-" + title);
@@ -79,6 +83,23 @@ function analyseThreshold(title, name, outputfile) {
 	File.append(name + ", " + lowerThreshold , outputfile);
 	resetThreshold;
 	close("*");
+
+	/*
+	//Extract the red channel from image
+	run("Split Channels");
+	selectWindow("C1-" + title);
+	run("8-bit");
+	//run("Subtract Background...", "rolling=50 sliding");
+	close("\\Others");
+	
+	//Write the lower threshold to file
+	setAutoThreshold("Otsu dark");
+	//setAutoThreshold("Triangle dark");
+	getThreshold(lowerThreshold, upperThreshold);
+	File.append(name + ", " + lowerThreshold , outputfile);
+	resetThreshold;
+	close("*");
+	*/
 }
 
 

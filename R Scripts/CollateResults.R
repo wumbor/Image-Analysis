@@ -37,15 +37,15 @@ master_data_sheet <- inner_join(pooled_experiment_results, meta_experiment_detai
 
 
 #Use conditionals to select filter parameters i.e. Model system and Parameter analyzed
-model_system <- "SY5YWT"
+model_system <- "NeuronsT7KO"
 parameter_to_analyze <- "NeuNNucleiCount"
 dose_for_timecourse <- "5"
 
 
 
-if (model_system == "NeuronsWT"){
+if (model_system %in% c("NeuronsWT", "NeuronsT7KO")){
   miR_candidates <- c("miR-124-5p", "miR-92a-1-5p") 
-  day_for_DRC <- "7"
+  day_for_DRC <- "5"
 } else if (model_system == "SY5YWT"){
   miR_candidates <- c("miR-9-5p", "miR-501-3p") 
   day_for_DRC <- "4"
@@ -59,17 +59,13 @@ DataToSummarise <- master_data_sheet %>%
   filter(Model.System == model_system, Parameter.Analyzed == parameter_to_analyze)
 
 
-# #Create unique filenames based on the parameters selected
-# outputWorkbookName = unique(DataToSummarise$Model.System)
-# outputFileName <- paste(unique(DataToSummarise$Model.System), unique(DataToSummarise$Parameter.Analyzed), sep = "_")
-# timecourseSheetName = paste(unique(DataToSummarise$Parameter.Analyzed), "TimeCourse", sep = ".")
-# allDaysSheetName = paste(unique(DataToSummarise$Parameter.Analyzed), "AllDays", sep = ".")
-# DRCSheetName = paste(unique(DataToSummarise$Parameter.Analyzed), "DRC", sep = ".")
+#Create unique filenames based on the parameters selected
+outputWorkbookName = unique(DataToSummarise$Model.System)
+outputFileName <- paste(unique(DataToSummarise$Model.System), unique(DataToSummarise$Parameter.Analyzed), sep = "_")
+
 
 #specify output files
-# timecourse_graph_file <- paste(parent_directory, outputFileName, "_TimeCourse", ".tiff", sep = "")
-# DRC_graph_file <- paste(parent_directory, outputFileName, "_DRC", ".tiff", sep = "")
-# results_excel_file <- paste(parent_directory, outputWorkbookName, ".xlsx", sep = "")
+results_excel_file <- paste(parent_directory, outputWorkbookName, ".xlsx", sep = "")
 
 
 

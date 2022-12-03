@@ -1,10 +1,9 @@
 
-IJMacrosDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/ImageJ Macros/"
-RScriptsDir = "C:/Users/Victor Kumbol/Documents/GitHub/Image-Analysis/R Scripts/"
+IJMacrosDir = "D:/OneDrive - Charité - Universitätsmedizin Berlin/Documents/GitHub/Image-Analysis/ImageJ Macros/"
+RScriptsDir = "D:/OneDrive - Charité - Universitätsmedizin Berlin/Documents/GitHub/Image-Analysis/R Scripts/"
 
-channelOfInterest = C2
-fluoParameter = Neurofil
+
+channelOfInterest = C1
+fluoParameter = Synaptophysin
 measureFluoresence? = TRUE
 plotData? = TRUE
-
-
