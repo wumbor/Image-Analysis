@@ -27,7 +27,7 @@ parseStandardName <- function(input_string) {
   return(output)
 }
 
-TreatmentLevels <- c("Null", "Control oligo", "Control oligo(5)", "Control oligo(10)","Alexa488", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8-506")
+TreatmentLevels <- c("Null", "Control oligo", "Control oligo(10)","Alexa488", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8-506")
 
 
 #GRAPH FORMATTING SECTION
@@ -40,7 +40,7 @@ plottheme <- theme(plot.title = element_text(hjust = 0.5), axis.text.x = element
 #META RESULTS SECTION
 #This function updates the metaresults file with experiment details
 updateMetaResults <- function(experimentId, ParameterAnalyzed, resultsExcelFile, metaResultsFile) {
-  metaResult <- data.frame("ExperimentID" = experimentId, "Parameter.Analyzed" = ParameterAnalyzed, "Result.File.Path" = paste(getwd(), resultsExcelFile, sep = "/"), "Analysis.Date" = as.character(Sys.time()), stringsAsFactors = FALSE)
+  metaResult <- data.frame("ExperimentID" = experimentId, "Parameter.Analyzed" = ParameterAnalyzed, "Result.File.Path" = resultsExcelFile, "Analysis.Date" = as.character(Sys.time()), stringsAsFactors = FALSE)
   
   if (file.exists(metaResultsFile)){ #append to an existing file, if any
     write_csv(as.data.frame(metaResult), metaResultsFile, append = TRUE, col_names = FALSE)
