@@ -27,7 +27,7 @@ parseStandardName <- function(input_string) {
   return(output)
 }
 
-TreatmentLevels <- c("Null", "Control oligo", "Control oligo(10)","Alexa488", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8-506")
+TreatmentLevels <- c("Null", "Control oligo", "Control oligo(5)", "Control oligo(10)","Alexa488", "miR-124-5p", "miR-124-5p(1)", "miR-124-5p(3)", "miR-124-5p(5)", "miR-124-5p(10)", "miR-124-5p(20)", "miR-9-5p", "miR-9-5p(1)", "miR-9-5p(3)", "miR-9-5p(5)", "miR-9-5p(10)", "miR-9-5p(20)", "miR-501-3p", "miR-501-3p(1)","miR-501-3p(3)", "miR-501-3p(5)", "miR-501-3p(10)", "miR-501-3p(20)","miR-92a-1-5p", "miR-92a-1-5p(1)", "miR-92a-1-5p(3)", "miR-92a-1-5p(5)", "miR-92a-1-5p(10)", "miR-92a-1-5p(20)", "let7b", "LOX", "R848", "TL8-506")
 
 
 #GRAPH FORMATTING SECTION
@@ -40,7 +40,7 @@ plottheme <- theme(plot.title = element_text(hjust = 0.5), axis.text.x = element
 #META RESULTS SECTION
 #This function updates the metaresults file with experiment details
 updateMetaResults <- function(experimentId, ParameterAnalyzed, resultsExcelFile, metaResultsFile) {
-  metaResult <- data.frame("ExperimentID" = experimentId, "Parameter.Analyzed" = ParameterAnalyzed, "Result.File.Path" = resultsExcelFile, "Analysis.Date" = as.character(Sys.time()), stringsAsFactors = FALSE)
+  metaResult <- data.frame("ExperimentID" = experimentId, "Parameter.Analyzed" = ParameterAnalyzed, "Result.File.Path" = paste(getwd(), resultsExcelFile, sep = "/"), "Analysis.Date" = as.character(Sys.time()), stringsAsFactors = FALSE)
   
   if (file.exists(metaResultsFile)){ #append to an existing file, if any
     write_csv(as.data.frame(metaResult), metaResultsFile, append = TRUE, col_names = FALSE)
@@ -49,12 +49,12 @@ updateMetaResults <- function(experimentId, ParameterAnalyzed, resultsExcelFile,
   }
 }
 
-metaExperimentDetailsFile <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/Experimental_Overview.xlsx"
-metaResultFilemMORPH <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/Pooled_Data.csv"
-metaResultFilemASSAY <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mASSAY/Pooled_Data.csv"
+metaExperimentDetailsFile <- "D:/OneDrive - CharitÃ© - UniversitÃ¤tsmedizin Berlin/My PhD Project/Experimental_Overview.xlsx"
+metaResultFilemMORPH <- "D:/OneDrive - CharitÃ© - UniversitÃ¤tsmedizin Berlin/My PhD Project/mMORPH/Pooled_Data.csv"
+metaResultFilemASSAY <- "D:/OneDrive - CharitÃ© - UniversitÃ¤tsmedizin Berlin/My PhD Project/mASSAY/Pooled_Data.csv"
 
-pooledResultsFoldermMORPH <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mMORPH/Pooled Data/"
-pooledResultsFoldermASSAY <- "D:/OneDrive - Charité - Universitätsmedizin Berlin/My PhD Project/mASSAY/Pooled Data/"
+pooledResultsFoldermMORPH <- "D:/OneDrive - CharitÃ© - UniversitÃ¤tsmedizin Berlin/My PhD Project/mMORPH/Pooled Data/"
+pooledResultsFoldermASSAY <- "D:/OneDrive - CharitÃ© - UniversitÃ¤tsmedizin Berlin/My PhD Project/mASSAY/Pooled Data/"
 
 IJMacrosDir <- "C:/Users/Victor Kumbol/Documents/GitHub/New-Image-Analysis/ImageJ Macros/"
 RScriptsDir <- "C:/Users/Victor Kumbol/Documents/GitHub/New-Image-Analysis/R Scripts/"
@@ -98,7 +98,9 @@ plotMiRKineticsGraphs <- function(dataForPlots, DurationOfInterest, errorType, t
   p2 <- dataForPlots %>%
     filter(Region=="Endosomal") %>%
     ggline(x= "AbsoluteTime.h", y = "Mean", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Mean Fluorescence Intensity", add = errorType, title = caption)
+  p2 <- ggpar(p2, ylim = c(400, 2000)) #use a common y-scale for all treatments
   kineticsPlots <- append(kineticsPlots, list(p2))
+  
   
   #Plot graph of Normalised Mean Fluorescence 
   p3 <- dataForPlots %>%
@@ -106,10 +108,20 @@ plotMiRKineticsGraphs <- function(dataForPlots, DurationOfInterest, errorType, t
     ggline(x= "AbsoluteTime.h", y = "NormalisedMean", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Normalised Fluorescence Intensity", add = errorType, title = caption)
   p3 <- ggpar(p3, ylim = c(1, 2)) #use a common y-scale for all treatments
   kineticsPlots <- append(kineticsPlots, list(p3))
+
   
-  kineticsPlots <- ggarrange(plotlist=kineticsPlots, nrow = 3)
+  
+  #Plot graph of Normalised Integrated Density 
+  p4 <- dataForPlots %>%
+    filter(Region=="Endosomal Raw Intensity") %>%
+    ggline(x= "AbsoluteTime.h", y = "NormalisedMean", color ="ChannelLabel", palette =  c("#0000FF", "#00FF00", "#FF0000"), numeric.x.axis = TRUE, xticks.by = 1, ylab = "Normalised Integrated Density", add = errorType, title = caption)
+  p4 <- ggpar(p4, ylim = c(0, 2)) #use a common y-scale for all treatments
+  kineticsPlots <- append(kineticsPlots, list(p4))
+  
+  
+  kineticsPlots <- ggarrange(plotlist=kineticsPlots, nrow = 4)
   #Graphs <- annotate_figure(kineticsPlots, top = text_grob(treatment, face = "bold", size = 14))
-  ggexport(kineticsPlots, filename = resultsGraphFile, width = 1500, height = 2250, res=100)
+  ggexport(kineticsPlots, filename = resultsGraphFile, width = 1200, height = 3000, res=100)
 }
 
 ###################################################################################################
